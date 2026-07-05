@@ -124,16 +124,17 @@ export class Orchestrator extends EventEmitter {
   }
 
   private registerAgents(): void {
+    const llm = getLLM();
     const agents = [
-      new PlannerAgent(this.memory, this.comm),
-      new ArchitectAgent(this.memory, this.comm),
-      new BackendAgent(this.memory, this.comm),
-      new FrontendAgent(this.memory, this.comm),
-      new QAAgent(this.memory, this.comm),
-      new DebugAgent(this.memory, this.comm),
-      new SecurityAgent(this.memory, this.comm),
-      new DevOpsAgent(this.memory, this.comm),
-      new ReporterAgent(this.memory, this.comm),
+      new PlannerAgent(this.memory, this.comm, llm),
+      new ArchitectAgent(this.memory, this.comm, llm),
+      new BackendAgent(this.memory, this.comm, llm),
+      new FrontendAgent(this.memory, this.comm, llm),
+      new QAAgent(this.memory, this.comm, llm),
+      new DebugAgent(this.memory, this.comm, llm),
+      new SecurityAgent(this.memory, this.comm, llm),
+      new DevOpsAgent(this.memory, this.comm, llm),
+      new ReporterAgent(this.memory, this.comm, llm),
     ];
     for (const agent of agents) {
       this.workflow.registerAgent(agent);

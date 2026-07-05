@@ -35,6 +35,8 @@ export interface TaskResult {
   summary: string;
   artifacts: Artifact[];
   tokens?: number;
+  tokenUsage?: { prompt: number; completion: number; total: number };
+  error?: string;
   duration: number;
 }
 
