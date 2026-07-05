@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BOWO Agent Office — 3D Visualization</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', -apple-system, sans-serif;
+      background: #0a0a1a;
+      color: #e0e0e0;
+      overflow: hidden;
+      height: 100vh;
+    }
+
+    /* ─── Header ─── */
+    .header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 60px;
+      background: linear-gradient(135deg, #1a1a3e 0%, #2d1b69 100%);
+      border-bottom: 2px solid #6c5ce7;
+      display: flex;
+      align-items: center;
+      padding: 0 24px;
+      z-index: 100;
+      justify-content: space-between;
+    }
+
+    .header h1 {
+      font-size: 20px;
+      color: #a29bfe;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .header .stats {
+      display: flex;
+      gap: 20px;
+      font-size: 13px;
+    }
+
+    .header .stat {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .header .stat .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    .dot.green { background: #00b894; }
+    .dot.yellow { background: #fdcb6e; }
+    .dot.red { background: #e17055; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.6; transform: scale(0.8); }
+    }
+
+    /* ─── 3D Scene ─── */
+    .scene {
+      position: fixed;
+      top: 60px;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      perspective: 1200px;
+      overflow: hidden;
+      background: radial-gradient(ellipse at center, #1a1a3e 0%, #0a0a1a 70%);
+    }
+
+    .floor {
+      position: absolute;
+      width: 1200px;
+      height: 800px;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%) rotateX(60deg) translateZ(-100px);
+      transform-style: preserve-3d;
+      background:
+        linear-gradient(90deg, rgba(108, 92, 231, 0.1) 1px, transparent 1px),
+        linear-gradient(rgba(108, 92, 231, 0.1) 1px, transparent 1px);
+      background-size: 80px 80px;
+      border: 1px solid rgba(108, 92, 231, 0.2);
+      border-radius: 8px;
+    }
+
+    /* ─── Agent Room Grid ─── */
+    .rooms {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      transform-style: preserve-3d;
+    }
+
+    /* ─── Individual Room ─── */
+    .room {
+      width: 280px;
+      height: 200px;
+      position: relative;
+      transform-style: preserve-3d;
+      cursor: pointer;
+      transition: transform 0.3s ease;
+    }
+
+    .room:hover {
+      transform: translateZ(20px) scale(1.02);
+    }
+
+    .room-face {
+      position: absolute;
+      border: 1px solid rgba(108, 92, 231, 0.3);
+      border-radius: 12px;
+      backface-visibility: hidden;
+    }
+
+    /* Room front face */
+    .room-front {
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, rgba(26, 26, 62, 0.95) 0%, rgba(45, 27, 105, 0.85) 100%);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-shadow:
+        0 4px 20px rgba(0, 0, 0, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      transition: all 0.3s ease;
+    }
+
+    .room:hover .room-front {
+      border-color: #6c5ce7;
+      box-shadow:
+        0 8px 40px rgba(108, 92, 231, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    }
+
+    /* Room top face (3D effect) */
+    .room-top {
+      width: 100%;
+      height: 30px;
+      background: linear-gradient(180deg, rgba(108, 92, 231, 0.3) 0%, rgba(108, 92, 231, 0.1) 100%);
+      transform: rotateX(90deg) translateZ(0px);
+      transform-origin: top;
+      border-radius: 12px 12px 0 0;
+    }
+
+    /* Room right face (3D effect) */
+    .room-right {
+      width: 30px;
+      height: 100%;
+      background: linear-gradient(90deg, rgba(108, 92, 231, 0.2) 0%, rgba(108, 92, 231, 0.05) 100%);
+      transform: rotateY(90deg) translateZ(280px);
+      transform-origin: right;
+      border-radius: 0 12px 12px 0;
+    }
+
+    /* ─── Room Content ─── */
+    .room-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .agent-icon {
+      font-size: 32px;
+      width: 56px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 12px;
+      background: rgba(108, 92, 231, 0.2);
+      border: 1px solid rgba(108, 92, 231, 0.3);
+      transition: all 0.3s ease;
+    }
+
+    .room.active .agent-icon {
+      animation: agentPulse 1.5s infinite;
+      border-color: #00b894;
+      box-shadow: 0 0 20px rgba(0, 184, 148, 0.3);
+    }
+
+    @keyframes agentPulse {
+      0%, 100% { transform: scale(1); box-shadow: 0 0 20px rgba(0, 184, 148, 0.3); }
+      50% { transform: scale(1.1); box-shadow: 0 0 30px rgba(0, 184, 148, 0.5); }
+    }
+
+    .room.status-active { border-color: #00b894; }
+    .room.status-idle { border-color: rgba(108, 92, 231, 0.3); }
+    .room.status-error { border-color: #e17055; }
+
+    .status-badge {
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .status-badge.active {
+      background: rgba(0, 184, 148, 0.2);
+      color: #00b894;
+      border: 1px solid rgba(0, 184, 148, 0.3);
+    }
+
+    .status-badge.idle {
+      background: rgba(99, 110, 114, 0.2);
+      color: #636e72;
+      border: 1px solid rgba(99, 110, 114, 0.3);
+    }
+
+    .status-badge.error {
+      background: rgba(225, 112, 85, 0.2);
+      color: #e17055;
+      border: 1px solid rgba(225, 112, 85, 0.3);
+    }
+
+    .agent-name {
+      font-size: 16px;
+      font-weight: 700;
+      color: #dfe6e9;
+      margin: 8px 0 4px;
+    }
+
+    .agent-role {
+      font-size: 12px;
+      color: #636e72;
+      margin-bottom: 8px;
+    }
+
+    .agent-task {
+      font-size: 12px;
+      color: #a29bfe;
+      padding: 6px 10px;
+      background: rgba(108, 92, 231, 0.15);
+      border-radius: 8px;
+      border-left: 3px solid #6c5ce7;
+      max-height: 40px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .room-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      color: #636e72;
+    }
+
+    .task-count {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* ─── Working Animation ─── */
+    .working-indicator {
+      display: none;
+      gap: 4px;
+      align-items: center;
+    }
+
+    .room.active .working-indicator {
+      display: flex;
+    }
+
+    .working-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #00b894;
+      animation: workBounce 1.4s infinite ease-in-out;
+    }
+
+    .working-dot:nth-child(1) { animation-delay: 0s; }
+    .working-dot:nth-child(2) { animation-delay: 0.2s; }
+    .working-dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes workBounce {
+      0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+      40% { transform: scale(1); opacity: 1; }
+    }
+
+    /* ─── Data Flow Lines ─── */
+    .data-flow {
+      position: absolute;
+      pointer-events: none;
+    }
+
+    .flow-line {
+      stroke: #6c5ce7;
+      stroke-width: 2;
+      fill: none;
+      stroke-dasharray: 8 4;
+      animation: flowDash 1s linear infinite;
+      opacity: 0.4;
+    }
+
+    .flow-line.active {
+      stroke: #00b894;
+      opacity: 0.8;
+      stroke-width: 3;
+    }
+
+    @keyframes flowDash {
+      to { stroke-dashoffset: -12; }
+    }
+
+    /* ─── Particle Effects ─── */
+    .particles {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .particle {
+      position: absolute;
+      width: 4px;
+      height: 4px;
+      background: #6c5ce7;
+      border-radius: 50%;
+      animation: particleFloat 8s infinite linear;
+      opacity: 0.3;
+    }
+
+    .particle.active {
+      background: #00b894;
+      opacity: 0.6;
+      width: 6px;
+      height: 6px;
+    }
+
+    @keyframes particleFloat {
+      0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+      10% { opacity: 0.6; }
+      90% { opacity: 0.6; }
+      100% { transform: translateY(-100vh) rotate(720deg); opacity: 0; }
+    }
+
+    /* ─── Side Panel ─── */
+    .side-panel {
+      position: fixed;
+      top: 60px;
+      right: 0;
+      width: 320px;
+      bottom: 0;
+      background: rgba(15, 15, 26, 0.95);
+      border-left: 1px solid rgba(108, 92, 231, 0.3);
+      padding: 20px;
+      overflow-y: auto;
+      z-index: 50;
+      backdrop-filter: blur(10px);
+      transform: translateX(100%);
+      transition: transform 0.3s ease;
+    }
+
+    .side-panel.open {
+      transform: translateX(0);
+    }
+
+    .side-panel h2 {
+      font-size: 18px;
+      color: #a29bfe;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .panel-close {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      background: none;
+      border: none;
+      color: #636e72;
+      font-size: 24px;
+      cursor: pointer;
+    }
+
+    .panel-section {
+      margin-bottom: 20px;
+    }
+
+    .panel-section h3 {
+      font-size: 13px;
+      color: #636e72;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 10px;
+    }
+
+    .panel-stat {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(108, 92, 231, 0.1);
+    }
+
+    .panel-stat .label { color: #636e72; }
+    .panel-stat .value { color: #dfe6e9; font-weight: 600; }
+
+    .task-log {
+      max-height: 200px;
+      overflow-y: auto;
+      font-size: 12px;
+    }
+
+    .log-entry {
+      padding: 6px 0;
+      border-bottom: 1px solid rgba(108, 92, 231, 0.1);
+      display: flex;
+      gap: 8px;
+    }
+
+    .log-time { color: #636e72; white-space: nowrap; }
+    .log-msg { color: #dfe6e9; }
+
+    /* ─── Controls ─── */
+    .controls {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 12px;
+      z-index: 100;
+    }
+
+    .ctrl-btn {
+      padding: 10px 20px;
+      border: 1px solid rgba(108, 92, 231, 0.3);
+      background: rgba(26, 26, 62, 0.9);
+      color: #a29bfe;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      transition: all 0.2s;
+      backdrop-filter: blur(10px);
+    }
+
+    .ctrl-btn:hover {
+      background: rgba(108, 92, 231, 0.3);
+      border-color: #6c5ce7;
+    }
+
+    .ctrl-btn.active {
+      background: rgba(0, 184, 148, 0.2);
+      border-color: #00b894;
+      color: #00b894;
+    }
+
+    /* ─── Tooltip ─── */
+    .tooltip {
+      position: fixed;
+      background: rgba(15, 15, 26, 0.95);
+      border: 1px solid #6c5ce7;
+      border-radius: 8px;
+      padding: 12px 16px;
+      font-size: 13px;
+      pointer-events: none;
+      z-index: 200;
+      max-width: 250px;
+      backdrop-filter: blur(10px);
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <!-- Header -->
+  <div class="header">
+    <h1>🏢 BOWO Agent Office</h1>
+    <div class="stats">
+      <div class="stat"><span class="dot green"></span> <span id="activeCount">0</span> Active</div>
+      <div class="stat"><span class="dot yellow"></span> <span id="idleCount">0</span> Idle</div>
+      <div class="stat"><span class="dot red"></span> <span id="errorCount">0</span> Error</div>
+      <div class="stat">📊 <span id="totalTasks">0</span> Tasks</div>
+    </div>
+  </div>
+
+  <!-- 3D Scene -->
+  <div class="scene" id="scene">
+    <div class="floor"></div>
+    <div class="rooms" id="rooms"></div>
+    <div class="particles" id="particles"></div>
+  </div>
+
+  <!-- Side Panel -->
+  <div class="side-panel" id="sidePanel">
+    <button class="panel-close" onclick="closePanel()">×</button>
+    <h2 id="panelTitle">Agent Details</h2>
+    <div id="panelContent"></div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <button class="ctrl-btn" onclick="toggleSimulation()">▶️ Simulate</button>
+    <button class="ctrl-btn" onclick="resetAll()">🔄 Reset</button>
+    <button class="ctrl-btn" onclick="toggleView()">👁️ View Mode</button>
+  </div>
+
+  <!-- Tooltip -->
+  <div class="tooltip" id="tooltip"></div>
+
+  <script>
+    // ─── Agent Data ───
+    const AGENTS = [
+      { id: 'planner', name: 'Planner', icon: '📋', role: 'Task Planning & Routing', color: '#6c5ce7' },
+      { id: 'architect', name: 'Architect', icon: '🏗️', role: 'System Design & Architecture', color: '#a29bfe' },
+      { id: 'backend', name: 'Backend', icon: '⚙️', role: 'API & Server Development', color: '#00b894' },
+      { id: 'frontend', name: 'Frontend', icon: '🎨', role: 'UI/UX Development', color: '#fd79a8' },
+      { id: 'qa', name: 'QA Engineer', icon: '🧪', role: 'Testing & Quality Assurance', color: '#fdcb6e' },
+      { id: 'security', name: 'Security', icon: '🔒', role: 'Security Auditing', color: '#e17055' },
+      { id: 'debug', name: 'Debugger', icon: '🐛', role: 'Bug Detection & Fixing', color: '#00cec9' },
+      { id: 'reporter', name: 'Reporter', icon: '📊', role: 'Reporting & Analytics', color: '#74b9ff' },
+      { id: 'devops', name: 'DevOps', icon: '🚀', role: 'Deployment & Infrastructure', color: '#55efc4' },
+    ];
+
+    const TASKS = [
+      'Building REST API endpoints',
+      'Designing database schema',
+      'Writing unit tests',
+      'Reviewing pull requests',
+      'Deploying to production',
+      'Fixing authentication bug',
+      'Creating dashboard UI',
+      'Optimizing queries',
+      'Setting up CI/CD pipeline',
+      'Auditing security vulnerabilities',
+      'Generating API documentation',
+      'Monitoring system health',
+      'Refactoring legacy code',
+      'Implementing caching layer',
+      'Setting up rate limiting',
+    ];
+
+    let agentStates = {};
+    let simulationRunning = false;
+    let simulationInterval = null;
+    let taskCounter = 0;
+
+    // ─── Initialize ───
+    function init() {
+      AGENTS.forEach(agent => {
+        agentStates[agent.id] = {
+          status: 'idle',
+          currentTask: null,
+          tasksCompleted: 0,
+          lastActive: null,
+          log: [],
+        };
+      });
+
+      renderRooms();
+      renderParticles();
+      updateStats();
+
+      // Auto-start simulation
+      setTimeout(() => toggleSimulation(), 1000);
+    }
+
+    // ─── Render Rooms ───
+    function renderRooms() {
+      const container = document.getElementById('rooms');
+      container.innerHTML = '';
+
+      AGENTS.forEach((agent, idx) => {
+        const state = agentStates[agent.id];
+        const room = document.createElement('div');
+        room.className = `room status-${state.status}`;
+        room.id = `room-${agent.id}`;
+        room.onclick = () => openPanel(agent);
+        room.onmouseenter = (e) => showTooltip(e, agent, state);
+        room.onmouseleave = hideTooltip;
+
+        room.innerHTML = `
+          <div class="room-face room-front">
+            <div class="room-header">
+              <div class="agent-icon" style="border-color: ${agent.color}30">${agent.icon}</div>
+              <span class="status-badge ${state.status}">${state.status}</span>
+            </div>
+            <div>
+              <div class="agent-name">${agent.name}</div>
+              <div class="agent-role">${agent.role}</div>
+              <div class="agent-task">${state.currentTask || 'Waiting for tasks...'}</div>
+            </div>
+            <div class="room-footer">
+              <div class="task-count">✅ ${state.tasksCompleted} tasks</div>
+              <div class="working-indicator">
+                <div class="working-dot"></div>
+                <div class="working-dot"></div>
+                <div class="working-dot"></div>
+                Working...
+              </div>
+            </div>
+          </div>
+          <div class="room-face room-top"></div>
+          <div class="room-face room-right"></div>
+        `;
+
+        container.appendChild(room);
+      });
+    }
+
+    // ─── Render Particles ───
+    function renderParticles() {
+      const container = document.getElementById('particles');
+      for (let i = 0; i < 30; i++) {
+        const p = document.createElement('div');
+        p.className = 'particle' + (Math.random() > 0.7 ? ' active' : '');
+        p.style.left = Math.random() * 100 + '%';
+        p.style.animationDelay = Math.random() * 8 + 's';
+        p.style.animationDuration = (6 + Math.random() * 6) + 's';
+        container.appendChild(p);
+      }
+    }
+
+    // ─── Simulation ───
+    function toggleSimulation() {
+      simulationRunning = !simulationRunning;
+      const btn = document.querySelector('.ctrl-btn');
+      btn.textContent = simulationRunning ? '⏸️ Pause' : '▶️ Simulate';
+      btn.classList.toggle('active', simulationRunning);
+
+      if (simulationRunning) {
+        simulationInterval = setInterval(simulateTick, 2000);
+      } else {
+        clearInterval(simulationInterval);
+      }
+    }
+
+    function simulateTick() {
+      // Randomly activate/deactivate agents
+      const agent = AGENTS[Math.floor(Math.random() * AGENTS.length)];
+      const state = agentStates[agent.id];
+
+      if (state.status === 'idle') {
+        // Start working
+        state.status = 'active';
+        state.currentTask = TASKS[Math.floor(Math.random() * TASKS.length)];
+        state.lastActive = new Date();
+        addLog(agent.id, `Started: ${state.currentTask}`);
+        taskCounter++;
+
+        // Complete after random time
+        setTimeout(() => {
+          if (agentStates[agent.id].status === 'active') {
+            agentStates[agent.id].status = 'idle';
+            agentStates[agent.id].tasksCompleted++;
+            addLog(agent.id, `Completed: ${agentStates[agent.id].currentTask}`);
+            agentStates[agent.id].currentTask = null;
+            renderRooms();
+            updateStats();
+          }
+        }, 3000 + Math.random() * 5000);
+
+      } else if (state.status === 'active' && Math.random() > 0.7) {
+        // Error!
+        state.status = 'error';
+        addLog(agent.id, 'Error occurred!');
+        setTimeout(() => {
+          agentStates[agent.id].status = 'idle';
+          agentStates[agent.id].currentTask = null;
+          renderRooms();
+          updateStats();
+        }, 2000);
+      }
+
+      renderRooms();
+      updateStats();
+    }
+
+    // ─── Update Stats ───
+    function updateStats() {
+      const states = Object.values(agentStates);
+      document.getElementById('activeCount').textContent = states.filter(s => s.status === 'active').length;
+      document.getElementById('idleCount').textContent = states.filter(s => s.status === 'idle').length;
+      document.getElementById('errorCount').textContent = states.filter(s => s.status === 'error').length;
+      document.getElementById('totalTasks').textContent = states.reduce((s, st) => s + st.tasksCompleted, 0);
+    }
+
+    // ─── Side Panel ───
+    function openPanel(agent) {
+      const state = agentStates[agent.id];
+      const panel = document.getElementById('sidePanel');
+      document.getElementById('panelTitle').innerHTML = `${agent.icon} ${agent.name}`;
+
+      document.getElementById('panelContent').innerHTML = `
+        <div class="panel-section">
+          <h3>Info</h3>
+          <div class="panel-stat"><span class="label">Role</span><span class="value">${agent.role}</span></div>
+          <div class="panel-stat"><span class="label">Status</span><span class="value" style="color:${state.status === 'active' ? '#00b894' : state.status === 'error' ? '#e17055' : '#636e72'}">${state.status.toUpperCase()}</span></div>
+          <div class="panel-stat"><span class="label">Tasks Done</span><span class="value">${state.tasksCompleted}</span></div>
+        </div>
+        <div class="panel-section">
+          <h3>Current Task</h3>
+          <div class="agent-task" style="margin:0">${state.currentTask || 'No active task'}</div>
+        </div>
+        <div class="panel-section">
+          <h3>Activity Log</h3>
+          <div class="task-log">
+            ${state.log.slice(-10).reverse().map(l => `
+              <div class="log-entry">
+                <span class="log-time">${l.time}</span>
+                <span class="log-msg">${l.message}</span>
+              </div>
+            `).join('') || '<div style="color:#636e72">No activity yet</div>'}
+          </div>
+        </div>
+      `;
+
+      panel.classList.add('open');
+    }
+
+    function closePanel() {
+      document.getElementById('sidePanel').classList.remove('open');
+    }
+
+    // ─── Log ───
+    function addLog(agentId, message) {
+      const time = new Date().toLocaleTimeString();
+      agentStates[agentId].log.push({ time, message });
+      if (agentStates[agentId].log.length > 50) {
+        agentStates[agentId].log = agentStates[agentId].log.slice(-50);
+      }
+    }
+
+    // ─── Tooltip ───
+    function showTooltip(e, agent, state) {
+      const tooltip = document.getElementById('tooltip');
+      tooltip.innerHTML = `<strong>${agent.icon} ${agent.name}</strong><br>${agent.role}<br><em>${state.currentTask || 'Idle'}</em>`;
+      tooltip.style.display = 'block';
+      tooltip.style.left = (e.clientX + 15) + 'px';
+      tooltip.style.top = (e.clientY + 15) + 'px';
+    }
+
+    function hideTooltip() {
+      document.getElementById('tooltip').style.display = 'none';
+    }
+
+    // ─── Reset ───
+    function resetAll() {
+      simulationRunning = false;
+      clearInterval(simulationInterval);
+      AGENTS.forEach(agent => {
+        agentStates[agent.id].status = 'idle';
+        agentStates[agent.id].currentTask = null;
+        agentStates[agent.id].tasksCompleted = 0;
+        agentStates[agent.id].log = [];
+      });
+      taskCounter = 0;
+      renderRooms();
+      updateStats();
+      document.querySelector('.ctrl-btn').textContent = '▶️ Simulate';
+      document.querySelector('.ctrl-btn').classList.remove('active');
+    }
+
+    // ─── View Mode ───
+    let viewMode = 0;
+    function toggleView() {
+      viewMode = (viewMode + 1) % 3;
+      const rooms = document.querySelector('.rooms');
+      switch(viewMode) {
+        case 0: rooms.style.transform = 'translate(-50%, -50%)'; break;
+        case 1: rooms.style.transform = 'translate(-50%, -50%) rotateY(15deg) rotateX(5deg)'; break;
+        case 2: rooms.style.transform = 'translate(-50%, -50%) rotateY(-15deg) rotateX(-5deg) scale(0.9)'; break;
+      }
+    }
+
+    // ─── Start ───
+    init();
+  </script>
+</body>
+</html>
