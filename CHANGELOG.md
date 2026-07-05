@@ -2,6 +2,33 @@
 
 All notable changes to BOWO (Backend Orchestrator for Workflow Optimization).
 
+## [3.6.0] - 2026-07-05
+
+### 🔄 Provider Pool — Multi-Key Rotation
+- 5 rotation strategies: round-robin, least-used, random, weighted, failover
+- Per-key usage tracking (tokens, requests, cost, latency)
+- Auto-disable on rate limit, quota exhaustion, or cost limits
+- Health checks with auto re-enable after cooldown
+- Persistent state (survives restarts)
+- Quick helpers: `createMiMoPool()`, `createMultiProviderPool()`
+
+## [3.5.0] - 2026-07-05
+
+### ✨ TypeScript Fixes
+- Fixed ALL TypeScript errors in src/ (was 44, now 0)
+- Fixed spawn overload with `(spawn as any) + ChildProcess` cast
+- Fixed null checks on proc.stdout/stderr with optional chaining
+- Fixed fs/path namespace imports
+
+## [3.4.0] - 2026-07-05
+
+### 📦 Developer Experience
+- Structured logging (src/logger.ts)
+- CONTRIBUTING.md (298 lines)
+- .env.example (8 variables)
+- @types/express for type safety
+- Pass LLM to all agents in orchestrator
+
 ## [3.3.0] - 2026-07-05
 
 ### 🧠 LLM-Powered Agents (All 9)
