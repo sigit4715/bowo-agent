@@ -219,7 +219,7 @@ export class OfflineCache {
   getStats(): CacheStats {
     const totalRequests = this.totalHits + this.totalMisses;
     const sizeBytes = Buffer.byteLength(
-      JSON.stringify([...this.entries.values()]),
+      JSON.stringify(Array.from(this.entries.values())),
       "utf-8",
     );
     return {
@@ -237,7 +237,7 @@ export class OfflineCache {
    * Query entries with optional filters.
    */
   getEntries(options?: GetEntriesOptions): CacheEntry[] {
-    let results = [...this.entries.values()];
+    let results = Array.from(this.entries.values());
 
     if (options?.model) {
       results = results.filter((e) => e.model === options.model);
@@ -260,7 +260,8 @@ export class OfflineCache {
    */
   cleanup(): number {
     let removed = 0;
-    for (const [id, entry] of this.entries) {
+    const entriesCopy = Array.from(this.entries.entries());
+    for (const [id, entry] of entriesCopy) {
       if (this.isExpired(entry)) {
         this.entries.delete(id);
         removed++;
@@ -274,7 +275,7 @@ export class OfflineCache {
    * Return all entries as a plain array (for serialisation / migration).
    */
   export(): CacheEntry[] {
-    return [...this.entries.values()];
+    return Array.from(this.entries.values());
   }
 
   /**
@@ -309,7 +310,7 @@ export class OfflineCache {
       mkdirSync(dir, { recursive: true });
       const payload = {
         config: this.config,
-        entries: [...this.entries.values()],
+        entries: Array.from(this.entries.values()),
         meta: {
           totalHits: this.totalHits,
           totalMisses: this.totalMisses,
@@ -429,7 +430,7 @@ export class OfflineCache {
   // -------------------------------------------------------------------------
 
   private findEntries(hash: string, model?: string): CacheEntry[] {
-    let results = [...this.entries.values()].filter(
+    let results = Array.from(this.entries.values()).filter(
       (e) => sha256(e.prompt) === hash,
     );
     if (model) {
@@ -444,13 +445,13 @@ export class OfflineCache {
 
   private tokenTotal(): number {
     let sum = 0;
-    for (const e of this.entries.values()) sum += e.tokens;
+    for (const e of Array.from(this.entries.values())) sum += e.tokens;
     return sum;
   }
 
   private sumField(field: "tokens" | "cost"): number {
     let sum = 0;
-    for (const e of this.entries.values()) sum += e[field];
+    for (const e of Array.from(this.entries.values())) sum += e[field];
     return sum;
   }
 }
