@@ -18,6 +18,9 @@ import { SecurityAgent } from "./agents/security.js";
 import { DevOpsAgent } from "./agents/devops.js";
 import { ReporterAgent } from "./agents/reporter.js";
 
+// Hermes Brain — lazy import
+let HermesBrainClass: any = null;
+
 // New modules — lazy init
 let modCostTracker: any = null;
 let modRecovery: any = null;
@@ -27,6 +30,7 @@ let modTemplates: any = null;
 let modMonitor: any = null;
 
 async function loadModules() {
+  try { const m = await import("./hermes-brain.js"); HermesBrainClass = m.HermesBrain; } catch {}
   try { const m = await import("./cost-tracker.js"); modCostTracker = m.CostTracker; } catch {}
   try { const m = await import("./recovery.js"); modRecovery = m.RecoveryExecutor; } catch {}
   try { const m = await import("./sessions.js"); modSessions = m.SessionManager; } catch {}
@@ -64,6 +68,7 @@ export class Orchestrator extends EventEmitter {
   public audit: any = null;
   public templates: any = null;
   public monitor: any = null;
+  public hermesBrain: any = null;
 
   constructor(config?: Partial<OrchestratorConfig>) {
     super();
@@ -75,9 +80,10 @@ export class Orchestrator extends EventEmitter {
   }
 
   private async ensureModules() {
-    if (this.modulesLoaded) return;
-    await loadModules();
-    this.costTracker = modCostTracker ? new modCostTracker() : null;
+   if (this.modulesLoaded) return;
+   await loadModules();
+   if (HermesBrainClass) { try { this.hermesBrain = new HermesBrainClass(); } catch {} }
+   this.costTracker = modCostTracker ? new modCostTracker() : null;
     this.recovery = modRecovery ? new modRecovery() : null;
     this.sessions = modSessions ? new modSessions() : null;
     this.audit = modAudit ? new modAudit() : null;

@@ -1,0 +1,70 @@
+# ═══════════════════════════════════════════════════════════════════════
+# BOWO Agent — GitHub Actions CI
+# ═══════════════════════════════════════════════════════════════════════
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  # ── Lint ──────────────────────────────────────────────────────────────
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npx eslint src/ --max-warnings 0
+        continue-on-error: true  # Non-blocking for now
+
+  # ── Type-check & Test ────────────────────────────────────────────────
+  build:
+    name: Type Check & Test
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Run demo / smoke test
+        run: npx tsx src/demo.ts
+        env:
+          # Provide dummy keys so env validation doesn't fail in CI
+          BOWO_LOG_LEVEL: info
+          BOWO_PORT: "3001"
+
+      - name: Build
+        run: npm run build
+
+      - name: Upload dist artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: bowo-dist
+          path: dist/
+          retention-days: 7
