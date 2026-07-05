@@ -6,6 +6,7 @@
  */
 
 import { BaseAgent, type AgentConfig, type TaskInput, type TaskResult, type Artifact } from "./base.js";
+import { MemoryType } from "../memory.js";
 
 export class PlannerAgent extends BaseAgent {
   constructor(memory: any, communication: any, llm?: any, workDir?: string) {
@@ -83,7 +84,7 @@ Respond with JSON:
     }
 
     // Store plan in memory
-    this.memory.store("decision", "planner", {
+    this.memory.store(MemoryType.DECISION, "planner", {
       taskId: input.taskId,
       goal: input.goal,
       plan: plan,
@@ -101,7 +102,7 @@ Respond with JSON:
 
     // Store artifacts
     for (const artifact of artifacts) {
-      this.memory.store("artifact", "planner", artifact);
+      this.memory.store(MemoryType.ARTIFACT, "planner", artifact);
     }
 
     this.emit("planner:complete", { taskId: input.taskId, plan });
@@ -166,7 +167,7 @@ Respond with JSON:
     ];
 
     for (const artifact of artifacts) {
-      this.memory.store("artifact", "planner", artifact);
+      this.memory.store(MemoryType.ARTIFACT, "planner", artifact);
     }
 
     this.emit("planner:complete", { taskId: input.taskId, plan });

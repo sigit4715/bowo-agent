@@ -6,6 +6,7 @@
  */
 
 import { BaseAgent, type AgentConfig, type TaskInput, type TaskResult, type Artifact } from "./base.js";
+import { MemoryType } from "../memory.js";
 
 export class BackendAgent extends BaseAgent {
   constructor(memory: any, communication: any, llm?: any, workDir?: string) {

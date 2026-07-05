@@ -1,11 +1,11 @@
 /**
  * BOWO Architect Agent — System Design & Architecture
  *
- * Designs system architecture, data models, API contracts,
- * and technology decisions.
+ * Uses LLM for intelligent architecture design.
+ * Falls back to rule-based design when LLM is offline.
  */
-
 import { BaseAgent, type AgentConfig, type TaskInput, type TaskResult, type Artifact } from "./base.js";
+import { MemoryType } from "../memory.js";
 
 export interface ArchitectureDesign {
   components: Component[];
@@ -67,40 +67,165 @@ Document every decision with rationale.`,
     const start = Date.now();
 
     try {
-      const design = this.design(input);
-      this.log("🏗 Architecture design completed", { decisions: design.decisions.length });
-
-      const artifacts: Artifact[] = [
-        {
-          name: "architecture.md",
-          type: "document",
-          content: this.toMarkdown(design),
-        },
-        {
-          name: "architecture.json",
-          type: "config",
-          content: JSON.stringify(design, null, 2),
-        },
-      ];
-
-      return {
-        agent: "architect",
-        taskId: input.taskId,
-        status: "completed",
-        summary: `🏗 Architecture: ${design.components.length} components, ${design.decisions.length} decisions — ${design.decisions.map(d => `${d.area}: ${d.choice}`).join("; ")}`,
-        artifacts,
-        duration: Date.now() - start,
-      };
-    } catch (err) {
-      return {
-        agent: "architect",
-        taskId: input.taskId,
-        status: "failed",
-        summary: `🏗 Architecture failed: ${String(err)}`,
-        artifacts: [],
-        duration: Date.now() - start,
-      };
+      // Try LLM-powered design
+      if (this.llm?.isAvailable()) {
+        return await this.designWithLLM(input, start);
+      }
+      // Fallback: rule-based design
+      return this.designWithRules(input, start);
+    } catch (err: any) {
+      this.log("🏗 LLM design failed, falling back to rules", { error: err.message });
+      return this.designWithRules(input, start);
     }
+  }
+
+  private async designWithLLM(input: TaskInput, start: number): Promise<TaskResult> {
+    this.log("🏗 Using LLM for architecture design", { goal: input.goal });
+
+    const prevArtifacts = this.getPreviousArtifacts(input.taskId);
+    const context = prevArtifacts.length > 0
+      ? `\nPrevious work:\n${prevArtifacts.map((a) => `[${a.name}]: ${a.content.slice(0, 500)}`).join("\n")}`
+      : "";
+
+    const prompt = `Design a complete system architecture for: ${input.goal}
+
+${context}
+
+Respond with JSON matching this structure:
+{
+  "components": [
+    {
+      "name": "component-name",
+      "type": "service|database|cache|queue|external",
+      "description": "What this component does",
+      "responsibilities": ["responsibility1", "responsibility2"]
+    }
+  ],
+  "dataModels": [
+    {
+      "name": "ModelName",
+      "fields": [
+        { "name": "field_name", "type": "string|number|boolean|datetime", "required": true }
+      ]
+    }
+  ],
+  "apiContracts": [
+    {
+      "method": "GET|POST|PUT|DELETE",
+      "path": "/api/v1/resource",
+      "description": "What this endpoint does",
+      "requestSchema": "optional request body description",
+      "responseSchema": "optional response description"
+    }
+  ],
+  "techStack": ["Technology1", "Technology2"],
+  "diagrams": ["mermaid diagram string"],
+  "decisions": [
+    {
+      "area": "Architecture Pattern|Database|API Style|etc",
+      "choice": "What was chosen",
+      "rationale": "Why this choice"
+    }
+  ]
+}
+
+Choose the right technologies and components for the specific goal. Be specific, not generic.`;
+
+    const response = await this.llmReason(prompt, JSON.stringify(input.context, null, 2));
+
+    if (!response.success || !response.output) {
+      throw new Error(response.error || "LLM returned empty response");
+    }
+
+    let design: ArchitectureDesign;
+    try {
+      let content = response.output.trim();
+      if (content.startsWith("```")) {
+        content = content.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "").trim();
+      }
+      design = JSON.parse(content) as ArchitectureDesign;
+    } catch {
+      // LLM didn't return valid JSON, parse from text
+      design = this.parseDesignFromText(response.output);
+    }
+
+    // Validate minimum structure
+    if (!design.components || !Array.isArray(design.components)) {
+      design.components = [];
+    }
+    if (!design.dataModels) design.dataModels = [];
+    if (!design.apiContracts) design.apiContracts = [];
+    if (!design.techStack) design.techStack = [];
+    if (!design.decisions) design.decisions = [];
+    if (!design.diagrams || design.diagrams.length === 0) {
+      design.diagrams = [this.generateMermaidDiagram(design.components)];
+    }
+
+    this.log("🏗 Architecture design completed via LLM", {
+      components: design.components.length,
+      decisions: design.decisions.length,
+    });
+
+    const artifacts: Artifact[] = [
+      {
+        name: "architecture.md",
+        type: "document",
+        content: this.toMarkdown(design),
+      },
+      {
+        name: "architecture.json",
+        type: "config",
+        content: JSON.stringify(design, null, 2),
+      },
+    ];
+
+    for (const artifact of artifacts) {
+      this.memory.store(MemoryType.ARTIFACT, "architect", artifact);
+    }
+
+    this.emit("architect:complete", { taskId: input.taskId, components: design.components.length });
+
+    return {
+      agent: "architect",
+      taskId: input.taskId,
+      status: "completed",
+      summary: `🏗 LLM Architecture: ${design.components.length} components, ${design.decisions.length} decisions — ${design.decisions.map(d => `${d.area}: ${d.choice}`).join("; ")}`,
+      artifacts,
+      duration: Date.now() - start,
+    };
+  }
+
+  private designWithRules(input: TaskInput, start: number): Promise<TaskResult> {
+    this.log("🏗 Using rule-based architecture design");
+    const design = this.design(input);
+
+    const artifacts: Artifact[] = [
+      {
+        name: "architecture.md",
+        type: "document",
+        content: this.toMarkdown(design),
+      },
+      {
+        name: "architecture.json",
+        type: "config",
+        content: JSON.stringify(design, null, 2),
+      },
+    ];
+
+    for (const artifact of artifacts) {
+      this.memory.store(MemoryType.ARTIFACT, "architect", artifact);
+    }
+
+    this.emit("architect:complete", { taskId: input.taskId, components: design.components.length });
+
+    return Promise.resolve({
+      agent: "architect",
+      taskId: input.taskId,
+      status: "completed",
+      summary: `🏗 Rule-based Architecture: ${design.components.length} components, ${design.decisions.length} decisions — ${design.decisions.map(d => `${d.area}: ${d.choice}`).join("; ")}`,
+      artifacts,
+      duration: Date.now() - start,
+    });
   }
 
   private design(task: TaskInput): ArchitectureDesign {
@@ -198,6 +323,37 @@ Document every decision with rationale.`,
       techStack,
       diagrams: [this.generateMermaidDiagram(components)],
       decisions,
+    };
+  }
+
+  private parseDesignFromText(text: string): ArchitectureDesign {
+    // Fallback: create a basic design from unstructured LLM text
+    return {
+      components: [
+        {
+          name: "app-server",
+          type: "service",
+          description: `Application designed for: ${text.slice(0, 200)}`,
+          responsibilities: ["business logic"],
+        },
+        {
+          name: "database",
+          type: "database",
+          description: "Primary data store",
+          responsibilities: ["data persistence"],
+        },
+      ],
+      dataModels: [],
+      apiContracts: [],
+      techStack: ["TypeScript", "Node.js"],
+      diagrams: [],
+      decisions: [
+        {
+          area: "Architecture",
+          choice: "See architecture.md for details",
+          rationale: "LLM provided text-based design",
+        },
+      ],
     };
   }
 

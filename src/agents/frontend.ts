@@ -1,11 +1,11 @@
 /**
  * BOWO Frontend Agent — Frontend Development Specialist
  *
- * Generates UI components, pages, styles,
- * and frontend architecture.
+ * Uses LLM for intelligent UI component generation.
+ * Falls back to rule-based generation when LLM is offline.
  */
-
 import { BaseAgent, type AgentConfig, type TaskInput, type TaskResult, type Artifact } from "./base.js";
+import { MemoryType } from "../memory.js";
 
 interface FrontendOutput {
   files: { path: string; framework: string; content: string }[];
@@ -38,34 +38,142 @@ Always include accessibility (a11y) and responsive design.`,
     const start = Date.now();
 
     try {
-      const output = this.generateUI(input);
-      this.log("🎨 Frontend generation completed", { components: output.components.length });
+      // Try LLM-powered generation
+      if (this.llm?.isAvailable()) {
+        return await this.generateWithLLM(input, start);
+      }
+      // Fallback: rule-based generation
+      return this.generateWithRules(input, start);
+    } catch (err: any) {
+      this.log("🎨 LLM generation failed, falling back to rules", { error: err.message });
+      return this.generateWithRules(input, start);
+    }
+  }
 
-      const artifacts: Artifact[] = output.files.map((f) => ({
-        name: f.path.split("/").pop() ?? f.path,
-        type: "code" as const,
-        content: f.content,
-        path: f.path,
-      }));
+  private async generateWithLLM(input: TaskInput, start: number): Promise<TaskResult> {
+    this.log("🎨 Using LLM for frontend generation", { goal: input.goal });
 
-      return {
-        agent: "frontend",
-        taskId: input.taskId,
-        status: "completed",
-        summary: `🎨 Generated ${output.files.length} files: ${output.notes.join("; ")}`,
-        artifacts,
-        duration: Date.now() - start,
-      };
-    } catch (err) {
-      return {
-        agent: "frontend",
-        taskId: input.taskId,
-        status: "failed",
-        summary: `🎨 Frontend generation failed: ${String(err)}`,
-        artifacts: [],
-        duration: Date.now() - start,
+    const prevArtifacts = this.getPreviousArtifacts(input.taskId);
+    const context = prevArtifacts.length > 0
+      ? `\nPrevious work from other agents:\n${prevArtifacts.map((a) => `[${a.name}]: ${a.content.slice(0, 500)}`).join("\n")}`
+      : "";
+
+    const prompt = `Generate frontend code for: ${input.goal}
+
+Requirements:
+- Use React with Next.js App Router
+- Use Tailwind CSS for styling
+- Include proper TypeScript types
+- Add loading states and error handling
+- Follow accessibility best practices (a11y)
+- Make it responsive
+
+${context}
+
+Respond with JSON:
+{
+  "files": [
+    {
+      "path": "src/app/page.tsx",
+      "framework": "next.js",
+      "content": "file content"
+    }
+  ],
+  "components": ["ComponentName1", "ComponentName2"],
+  "notes": ["Note about what was generated"]
+}
+
+Generate complete, working React components. Do NOT use placeholder or TODO comments.`;
+
+    const response = await this.llmReason(prompt, JSON.stringify(input.context, null, 2));
+
+    if (!response.success || !response.output) {
+      throw new Error(response.error || "LLM returned empty response");
+    }
+
+    let output: FrontendOutput;
+    try {
+      let content = response.output.trim();
+      if (content.startsWith("```")) {
+        content = content.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "").trim();
+      }
+      output = JSON.parse(content) as FrontendOutput;
+    } catch {
+      // LLM didn't return valid JSON, wrap the raw output as a single file
+      output = {
+        files: [
+          {
+            path: "src/app/page.tsx",
+            framework: "react",
+            content: response.output,
+          },
+        ],
+        components: ["GeneratedComponent"],
+        notes: ["Generated from LLM text output (non-JSON response)"],
       };
     }
+
+    // Validate structure
+    if (!output.files || !Array.isArray(output.files)) output.files = [];
+    if (!output.components) output.components = [];
+    if (!output.notes) output.notes = [];
+
+    // Write files to disk
+    const writtenFiles: string[] = [];
+    for (const file of output.files) {
+      const writeResult = this.writeFile(file.path, file.content);
+      if (writeResult.success) {
+        writtenFiles.push(file.path);
+        this.log(`🎨 Written: ${file.path}`);
+      }
+    }
+
+    const artifacts: Artifact[] = output.files.map((f) => ({
+      name: f.path.split("/").pop() ?? f.path,
+      type: "code" as const,
+      content: f.content,
+      path: f.path,
+    }));
+
+    for (const artifact of artifacts) {
+      this.memory.store(MemoryType.ARTIFACT, "frontend", artifact);
+    }
+
+    this.emit("frontend:complete", { taskId: input.taskId, files: writtenFiles });
+
+    return {
+      agent: "frontend",
+      taskId: input.taskId,
+      status: "completed",
+      summary: `🎨 LLM generated ${writtenFiles.length} files: ${output.notes.join("; ")}`,
+      artifacts,
+      duration: Date.now() - start,
+    };
+  }
+
+  private generateWithRules(input: TaskInput, start: number): Promise<TaskResult> {
+    this.log("🎨 Using rule-based frontend generation");
+    const output = this.generateUI(input);
+
+    const artifacts: Artifact[] = output.files.map((f) => ({
+      name: f.path.split("/").pop() ?? f.path,
+      type: "code" as const,
+      content: f.content,
+      path: f.path,
+    }));
+
+    for (const artifact of artifacts) {
+      this.memory.store(MemoryType.ARTIFACT, "frontend", artifact);
+    }
+
+    return Promise.resolve({
+      agent: "frontend",
+      taskId: input.taskId,
+      status: "completed",
+      summary: `🎨 Rule-based generated ${output.files.length} files: ${output.notes.join("; ")}`,
+      artifacts,
+      duration: Date.now() - start,
+    });
   }
 
   private generateUI(task: TaskInput): FrontendOutput {
