@@ -23,9 +23,12 @@ const BANNER = `
   ║  Commands:                                   ║
   ║    /status    — Show system status           ║
   ║    /agents    — List all agents              ║
-  ║    /providers — List LLM providers           ║
-  ║    /hermes    — Hermes integration status    ║
-  ║    /memory    — Show memory summary          ║
+  ║    /providers — List LLM providers             ║
+  ║    /hermes   — Hermes integration status        ║
+  ║    /supervisor — Run with supervisor pattern    ║
+  ║    /checkpoint — List/resume checkpoints        ║
+  ║    /dag      — Show DAG workflow                ║
+  ║    /help     — Show this help                   ║
   ║    /history   — Show recent pipelines        ║
   ║    /help      — Show this help               ║
   ║    /quit      — Exit                         ║
