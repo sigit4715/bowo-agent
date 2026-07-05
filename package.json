@@ -1,18 +1,36 @@
 {
   "name": "bowo-agent",
-  "version": "0.1.0",
-  "description": "BOWO Agent — Hermes-powered autonomous AI agent system",
+  "version": "3.3.0",
+  "description": "BOWO — Multi-Agent AI System with Hermes Brain",
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit",
     "demo": "tsx src/demo.ts",
-    "start": "node dist/index.js"
+    "demo:v3": "tsx src/demo-v3.ts",
+    "test": "tsx tests/test-core.ts && tsx tests/test-tools.ts && tsx tests/test-features.ts",
+    "test:core": "tsx tests/test-core.ts",
+    "test:tools": "tsx tests/test-tools.ts",
+    "test:features": "tsx tests/test-features.ts",
+    "bench": "tsx benchmarks/run.ts",
+    "start": "node dist/index.js",
+    "dev": "tsx src/cli.ts"
   },
   "engines": {
     "node": ">=22.0.0"
   },
+  "keywords": [
+    "ai",
+    "multi-agent",
+    "hermes",
+    "llm",
+    "workflow",
+    "orchestrator",
+    "typescript"
+  ],
+  "author": "Bowo",
+  "license": "MIT",
   "devDependencies": {
     "@types/node": "^22.0.0",
     "tsx": "^4.19.0",

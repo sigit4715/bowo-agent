@@ -3,3 +3,9 @@ dist/
 output/
 .env
 *.log
+.DS_Store
+output/database/
+output/checkpoints/
+output/audit/
+output/users.json
+*.tmp
