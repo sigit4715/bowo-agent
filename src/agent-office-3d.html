@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BOWO 3D Office — Real-time Agent Building</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', sans-serif; background: #0a0a1a; color: #e0e0e0; overflow: hidden; }
+    #canvas3d { position: fixed; top: 0; left: 0; width: 100%; height: 100%; }
+
+    /* ─── HUD Overlay ─── */
+    .hud { position: fixed; top: 0; left: 0; right: 0; height: 56px; background: rgba(10,10,26,0.85); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(108,92,231,0.3); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; z-index: 100; }
+    .hud h1 { font-size: 18px; color: #a29bfe; display: flex; align-items: center; gap: 8px; }
+    .hud-stats { display: flex; gap: 16px; font-size: 13px; }
+    .hud-stat { display: flex; align-items: center; gap: 5px; }
+    .hud-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .hud-dot.green { background: #00b894; box-shadow: 0 0 8px #00b894; }
+    .hud-dot.gray { background: #636e72; }
+    .hud-dot.red { background: #e17055; box-shadow: 0 0 8px #e17055; }
+
+    /* ─── Info Panel (click agent) ─── */
+    .info-panel { position: fixed; bottom: 20px; left: 20px; width: 320px; background: rgba(10,10,26,0.92); backdrop-filter: blur(12px); border: 1px solid rgba(108,92,231,0.4); border-radius: 14px; padding: 18px; z-index: 100; display: none; }
+    .info-panel.show { display: block; }
+    .info-panel h2 { font-size: 16px; color: #a29bfe; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+    .info-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(108,92,231,0.1); font-size: 13px; }
+    .info-row .lbl { color: #636e72; }
+    .info-row .val { color: #dfe6e9; font-weight: 600; }
+    .info-task { margin-top: 10px; padding: 10px; background: rgba(108,92,231,0.12); border-radius: 8px; border-left: 3px solid #6c5ce7; font-size: 12px; color: #a29bfe; }
+
+    /* ─── Bottom Controls ─── */
+    .controls { position: fixed; bottom: 20px; right: 20px; display: flex; gap: 10px; z-index: 100; }
+    .ctrl-btn { padding: 8px 16px; border: 1px solid rgba(108,92,231,0.3); background: rgba(10,10,26,0.8); backdrop-filter: blur(8px); color: #a29bfe; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.2s; }
+    .ctrl-btn:hover { background: rgba(108,92,231,0.3); border-color: #6c5ce7; }
+    .ctrl-btn.active { background: rgba(0,184,148,0.2); border-color: #00b894; color: #00b894; }
+
+    /* ─── Loading ─── */
+    .loading { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #0a0a1a; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 999; transition: opacity 0.5s; }
+    .loading.hidden { opacity: 0; pointer-events: none; }
+    .loading h2 { color: #a29bfe; margin-top: 16px; }
+    .loading p { color: #636e72; font-size: 14px; margin-top: 8px; }
+    .loader { width: 48px; height: 48px; border: 3px solid #2d2d44; border-top-color: #6c5ce7; border-radius: 50%; animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <!-- Loading -->
+  <div class="loading" id="loading">
+    <div class="loader"></div>
+    <h2>🏢 Building BOWO Office...</h2>
+    <p>Constructing 3D environment & spawning agents</p>
+  </div>
+
+  <!-- 3D Canvas -->
+  <canvas id="canvas3d"></canvas>
+
+  <!-- HUD -->
+  <div class="hud">
+    <h1>🏢 BOWO 3D Office</h1>
+    <div class="hud-stats">
+      <div class="hud-stat"><div class="hud-dot green"></div><span id="sActive">0</span> Working</div>
+      <div class="hud-stat"><div class="hud-dot gray"></div><span id="sIdle">0</span> Idle</div>
+      <div class="hud-stat"><div class="hud-dot red"></div><span id="sError">0</span> Error</div>
+      <div class="hud-stat">📋 <span id="sTasks">0</span> Tasks Done</div>
+    </div>
+  </div>
+
+  <!-- Info Panel -->
+  <div class="info-panel" id="infoPanel">
+    <h2 id="infoTitle">Agent</h2>
+    <div class="info-row"><span class="lbl">Status</span><span class="val" id="infoStatus">—</span></div>
+    <div class="info-row"><span class="lbl">Tasks Done</span><span class="val" id="infoTasks">0</span></div>
+    <div class="info-row"><span class="lbl">Role</span><span class="val" id="infoRole">—</span></div>
+    <div class="info-task" id="infoTask">No active task</div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <button class="ctrl-btn active" id="btnSim" onclick="toggleSim()">⏸ Pause</button>
+    <button class="ctrl-btn" onclick="resetCam()">🎥 Reset Cam</button>
+    <button class="ctrl-btn" onclick="toggleRotate()">🔄 Auto-Rotate</button>
+  </div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  BOWO 3D OFFICE — Three.js Real-time Visualization
+// ═══════════════════════════════════════════════════════
+
+const AGENTS = [
+  { id:'planner',   name:'Planner',   icon:'📋', role:'Task Planning',     color:0x6c5ce7, desk:[-3,0,-3] },
+  { id:'architect', name:'Architect', icon:'🏗️', role:'System Design',     color:0xa29bfe, desk:[0,0,-3] },
+  { id:'backend',   name:'Backend',   icon:'⚙️', role:'API Development',   color:0x00b894, desk:[3,0,-3] },
+  { id:'frontend',  name:'Frontend',  icon:'🎨', role:'UI/UX Development', color:0xfd79a8, desk:[-3,0,0] },
+  { id:'qa',        name:'QA',        icon:'🧪', role:'Testing',           color:0xfdcb6e, desk:[0,0,0] },
+  { id:'security',  name:'Security',  icon:'🔒', role:'Security Audit',    color:0xe17055, desk:[3,0,0] },
+  { id:'debug',     name:'Debugger',  icon:'🐛', role:'Bug Fixing',        color:0x00cec9, desk:[-3,0,3] },
+  { id:'reporter',  name:'Reporter',  icon:'📊', role:'Reporting',         color:0x74b9ff, desk:[0,0,3] },
+  { id:'devops',    name:'DevOps',    icon:'🚀', role:'Deployment',        color:0x55efc4, desk:[3,0,3] },
+];
+
+const TASKS = [
+  'Building REST API','Writing tests','Code review','Deploying to prod',
+  'Fixing auth bug','Creating dashboard','Optimizing queries','Setting up CI/CD',
+  'Security audit','Generating docs','Monitoring health','Refactoring code',
+  'Implementing cache','Setting up rate limits','Designing schema',
+];
+
+// ─── Three.js Setup ───
+const canvas = document.getElementById('canvas3d');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.2;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0a0a1a);
+scene.fog = new THREE.Fog(0x0a0a1a, 20, 40);
+
+const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
+camera.position.set(12, 14, 12);
+camera.lookAt(0, 0, 0);
+
+// ─── Lights ───
+const ambientLight = new THREE.AmbientLight(0x404060, 0.6);
+scene.add(ambientLight);
+
+const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+dirLight.position.set(10, 15, 10);
+dirLight.castShadow = true;
+dirLight.shadow.mapSize.set(2048, 2048);
+dirLight.shadow.camera.near = 0.5;
+dirLight.shadow.camera.far = 50;
+dirLight.shadow.camera.left = -15;
+dirLight.shadow.camera.right = 15;
+dirLight.shadow.camera.top = 15;
+dirLight.shadow.camera.bottom = -15;
+scene.add(dirLight);
+
+const purpleLight = new THREE.PointLight(0x6c5ce7, 0.4, 20);
+purpleLight.position.set(-5, 8, -5);
+scene.add(purpleLight);
+
+const greenLight = new THREE.PointLight(0x00b894, 0.3, 20);
+greenLight.position.set(5, 8, 5);
+scene.add(greenLight);
+
+// ─── Materials ───
+const floorMat = new THREE.MeshStandardMaterial({ color: 0x1a1a2e, roughness: 0.8, metalness: 0.2 });
+const wallMat = new THREE.MeshStandardMaterial({ color: 0x16213e, roughness: 0.6, metalness: 0.1, transparent: true, opacity: 0.7 });
+const deskMat = new THREE.MeshStandardMaterial({ color: 0x2d2d44, roughness: 0.5, metalness: 0.3 });
+const screenMat = new THREE.MeshStandardMaterial({ color: 0x0f3460, roughness: 0.3, metalness: 0.5, emissive: 0x1a1a5e, emissiveIntensity: 0.3 });
+const chairMat = new THREE.MeshStandardMaterial({ color: 0x3d3d5c, roughness: 0.6, metalness: 0.2 });
+
+// ─── Floor ───
+const floor = new THREE.Mesh(new THREE.BoxGeometry(14, 0.2, 10), floorMat);
+floor.position.y = -0.1;
+floor.receiveShadow = true;
+scene.add(floor);
+
+// Grid lines on floor
+const gridHelper = new THREE.GridHelper(14, 14, 0x6c5ce7, 0x2d2d44);
+gridHelper.position.y = 0.01;
+scene.add(gridHelper);
+
+// ─── Walls (transparent) ───
+function createWall(w, h, d, x, y, z) {
+  const wall = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), wallMat);
+  wall.position.set(x, y, z);
+  wall.castShadow = true;
+  scene.add(wall);
+  return wall;
+}
+createWall(14, 4, 0.15, 0, 2, -5);   // back
+createWall(14, 4, 0.15, 0, 2, 5);    // front
+createWall(0.15, 4, 10, -7, 2, 0);   // left
+createWall(0.15, 4, 10, 7, 2, 0);    // right
+createWall(14, 0.15, 10, 0, 4, 0);   // ceiling (transparent)
+
+// ─── Desk + Chair + Screen ───
+function createDesk(x, z) {
+  const group = new THREE.Group();
+  // Desk top
+  const top = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.1, 1), deskMat);
+  top.position.set(0, 0.75, 0);
+  top.castShadow = true;
+  group.add(top);
+  // Legs
+  for (const lx of [-0.8, 0.8]) {
+    for (const lz of [-0.4, 0.4]) {
+      const leg = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.75, 0.08), deskMat);
+      leg.position.set(lx, 0.375, lz);
+      group.add(leg);
+    }
+  }
+  // Monitor
+  const monitor = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.8, 0.05), screenMat);
+  monitor.position.set(0, 1.5, -0.3);
+  monitor.castShadow = true;
+  group.add(monitor);
+  // Monitor stand
+  const stand = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.3, 0.1), deskMat);
+  stand.position.set(0, 1.05, -0.3);
+  group.add(stand);
+  // Screen glow
+  const glow = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 0.7), new THREE.MeshBasicMaterial({ color: 0x1a5276, transparent: true, opacity: 0.6 }));
+  glow.position.set(0, 1.5, -0.27);
+  group.add(glow);
+  // Chair
+  const seat = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.08, 0.6), chairMat);
+  seat.position.set(0, 0.5, 0.8);
+  group.add(seat);
+  const backrest = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.7, 0.08), chairMat);
+  backrest.position.set(0, 0.85, 1.08);
+  group.add(backrest);
+
+  group.position.set(x, 0, z);
+  scene.add(group);
+  return group;
+}
+
+// ─── Humanoid Character ───
+function createCharacter(color, x, z) {
+  const group = new THREE.Group();
+  const skinMat = new THREE.MeshStandardMaterial({ color: 0xf5cba7, roughness: 0.7 });
+  const bodyMat = new THREE.MeshStandardMaterial({ color, roughness: 0.5, metalness: 0.1 });
+  const hairMat = new THREE.MeshStandardMaterial({ color: 0x2d3436, roughness: 0.8 });
+
+  // Head
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.22, 16, 16), skinMat);
+  head.position.y = 1.55;
+  head.castShadow = true;
+  group.add(head);
+
+  // Hair
+  const hair = new THREE.Mesh(new THREE.SphereGeometry(0.23, 16, 16), hairMat);
+  hair.position.y = 1.62;
+  hair.scale.set(1, 0.6, 1);
+  group.add(hair);
+
+  // Body (torso)
+  const body = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.5, 0.25), bodyMat);
+  body.position.y = 1.1;
+  body.castShadow = true;
+  group.add(body);
+
+  // Left arm
+  const leftArm = new THREE.Group();
+  const lArm = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.4, 0.12), bodyMat);
+  lArm.position.y = -0.2;
+  leftArm.add(lArm);
+  leftArm.position.set(-0.28, 1.25, 0);
+  leftArm.rotation.z = 0.15;
+  group.add(leftArm);
+
+  // Right arm
+  const rightArm = new THREE.Group();
+  const rArm = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.4, 0.12), bodyMat);
+  rArm.position.y = -0.2;
+  rightArm.add(rArm);
+  rightArm.position.set(0.28, 1.25, 0);
+  rightArm.rotation.z = -0.15;
+  group.add(rightArm);
+
+  // Legs
+  for (const side of [-0.1, 0.1]) {
+    const leg = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.5, 0.14), new THREE.MeshStandardMaterial({ color: 0x2d3436 }));
+    leg.position.set(side, 0.55, 0);
+    group.add(leg);
+  }
+
+  group.position.set(x, 0, z);
+  group.userData = { leftArm, rightArm, head, body, baseY: 0 };
+  scene.add(group);
+  return group;
+}
+
+// ─── Status Light (above head) ───
+function createStatusLight(color) {
+  const light = new THREE.Mesh(
+    new THREE.SphereGeometry(0.06, 8, 8),
+    new THREE.MeshBasicMaterial({ color })
+  );
+  return light;
+}
+
+// ─── Build Scene ───
+const agentObjects = {};
+
+AGENTS.forEach((agent, i) => {
+  const dx = agent.desk[0];
+  const dz = agent.desk[2];
+
+  // Desk
+  createDesk(dx, dz);
+
+  // Character (sitting at desk, facing screen)
+  const char = createCharacter(agent.color, dx, dz + 0.4);
+  char.rotation.y = Math.PI; // face desk
+
+  // Status light
+  const statusLight = createStatusLight(0x636e72);
+  statusLight.position.y = 1.9;
+  char.add(statusLight);
+
+  // Name label (using sprite)
+  const labelCanvas = document.createElement('canvas');
+  labelCanvas.width = 256;
+  labelCanvas.height = 64;
+  const ctx = labelCanvas.getContext('2d');
+  ctx.fillStyle = 'rgba(10,10,26,0.8)';
+  ctx.roundRect(0, 0, 256, 64, 8);
+  ctx.fill();
+  ctx.fillStyle = '#a29bfe';
+  ctx.font = 'bold 24px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(agent.icon + ' ' + agent.name, 128, 42);
+
+  const labelTexture = new THREE.CanvasTexture(labelCanvas);
+  const labelMat = new THREE.SpriteMaterial({ map: labelTexture, transparent: true });
+  const label = new THREE.Sprite(labelMat);
+  label.scale.set(1.5, 0.4, 1);
+  label.position.y = 2.2;
+  char.add(label);
+
+  agentObjects[agent.id] = { char, statusLight, desk: null, agent, task: null, status: 'idle', tasksDone: 0, leftArm: char.userData.leftArm, rightArm: char.userData.rightArm };
+});
+
+// ─── Mouse Interaction ───
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
+let selectedAgent = null;
+
+canvas.addEventListener('click', (e) => {
+  mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+  raycaster.setFromCamera(mouse, camera);
+
+  const chars = Object.values(agentObjects).map(a => a.char);
+  const intersects = raycaster.intersectObjects(chars, true);
+
+  if (intersects.length > 0) {
+    let obj = intersects[0].object;
+    while (obj.parent && !obj.userData.agent) obj = obj.parent;
+    if (obj.userData.agent) {
+      selectedAgent = obj.userData.agent.id;
+      showInfo(selectedAgent);
+    }
+  }
+});
+
+function showInfo(id) {
+  const a = agentObjects[id];
+  if (!a) return;
+  document.getElementById('infoTitle').innerHTML = a.agent.icon + ' ' + a.agent.name;
+  document.getElementById('infoStatus').textContent = a.status.toUpperCase();
+  document.getElementById('infoStatus').style.color = a.status === 'active' ? '#00b894' : a.status === 'error' ? '#e17055' : '#636e72';
+  document.getElementById('infoTasks').textContent = a.tasksDone;
+  document.getElementById('infoRole').textContent = a.agent.role;
+  document.getElementById('infoTask').textContent = a.task || 'No active task';
+  document.getElementById('infoPanel').classList.add('show');
+}
+
+// ─── Camera Controls (simple orbit) ───
+let camAngle = Math.PI / 4;
+let camRadius = 16;
+let camHeight = 14;
+let autoRotate = true;
+let isDragging = false;
+let lastMouse = { x: 0, y: 0 };
+
+canvas.addEventListener('mousedown', (e) => { isDragging = true; lastMouse = { x: e.clientX, y: e.clientY }; });
+canvas.addEventListener('mouseup', () => isDragging = false);
+canvas.addEventListener('mouseleave', () => isDragging = false);
+canvas.addEventListener('mousemove', (e) => {
+  if (!isDragging) return;
+  const dx = e.clientX - lastMouse.x;
+  const dy = e.clientY - lastMouse.y;
+  camAngle -= dx * 0.005;
+  camHeight = Math.max(5, Math.min(25, camHeight + dy * 0.05));
+  lastMouse = { x: e.clientX, y: e.clientY };
+});
+canvas.addEventListener('wheel', (e) => {
+  camRadius = Math.max(8, Math.min(30, camRadius + e.deltaY * 0.01));
+});
+
+function updateCamera() {
+  camera.position.x = Math.cos(camAngle) * camRadius;
+  camera.position.z = Math.sin(camAngle) * camRadius;
+  camera.position.y = camHeight;
+  camera.lookAt(0, 1, 0);
+}
+
+function resetCam() { camAngle = Math.PI / 4; camRadius = 16; camHeight = 14; }
+function toggleRotate() { autoRotate = !autoRotate; document.querySelectorAll('.ctrl-btn')[2].classList.toggle('active', autoRotate); }
+
+// ─── Simulation ───
+let simRunning = true;
+let simTimer = 0;
+
+function toggleSim() {
+  simRunning = !simRunning;
+  const btn = document.getElementById('btnSim');
+  btn.textContent = simRunning ? '⏸ Pause' : '▶ Play';
+  btn.classList.toggle('active', simRunning);
+}
+
+function simulateStep() {
+  if (!simRunning) return;
+
+  const agentIds = Object.keys(agentObjects);
+  const id = agentIds[Math.floor(Math.random() * agentIds.length)];
+  const a = agentObjects[id];
+
+  if (a.status === 'idle') {
+    // Start working
+    a.status = 'active';
+    a.task = TASKS[Math.floor(Math.random() * TASKS.length)];
+    a.statusLight.material.color.setHex(0x00b894);
+
+    // Animate typing
+    a.typingAnim = true;
+    a.typingStart = Date.now();
+
+    // Complete after 3-6 seconds
+    a.completeTimeout = setTimeout(() => {
+      if (agentObjects[id].status === 'active') {
+        agentObjects[id].status = 'idle';
+        agentObjects[id].tasksDone++;
+        agentObjects[id].task = null;
+        agentObjects[id].statusLight.material.color.setHex(0x636e72);
+        agentObjects[id].typingAnim = false;
+        updateHUD();
+      }
+    }, 3000 + Math.random() * 3000);
+
+  } else if (a.status === 'active' && Math.random() > 0.8) {
+    // Error!
+    a.status = 'error';
+    a.statusLight.material.color.setHex(0xe17055);
+    a.typingAnim = false;
+    setTimeout(() => {
+      agentObjects[id].status = 'idle';
+      agentObjects[id].task = null;
+      agentObjects[id].statusLight.material.color.setHex(0x636e72);
+      updateHUD();
+    }, 2000);
+  }
+
+  updateHUD();
+}
+
+function updateHUD() {
+  const all = Object.values(agentObjects);
+  document.getElementById('sActive').textContent = all.filter(a => a.status === 'active').length;
+  document.getElementById('sIdle').textContent = all.filter(a => a.status === 'idle').length;
+  document.getElementById('sError').textContent = all.filter(a => a.status === 'error').length;
+  document.getElementById('sTasks').textContent = all.reduce((s, a) => s + a.tasksDone, 0);
+
+  // Update info panel if open
+  if (selectedAgent) showInfo(selectedAgent);
+}
+
+// ─── Animation Loop ───
+const clock = new THREE.Clock();
+
+function animate() {
+  requestAnimationFrame(animate);
+  const t = clock.getElapsedTime();
+
+  // Auto rotate
+  if (autoRotate && !isDragging) camAngle += 0.002;
+  updateCamera();
+
+  // Simulate
+  simTimer += clock.getDelta();
+  if (simTimer > 2) { simTimer = 0; simulateStep(); }
+
+  // Animate characters
+  for (const id of Object.keys(agentObjects)) {
+    const a = agentObjects[id];
+    if (!a.char) continue;
+
+    // Typing animation (arms move)
+    if (a.typingAnim) {
+      const speed = 8;
+      a.leftArm.rotation.x = Math.sin(t * speed) * 0.3;
+      a.rightArm.rotation.x = Math.sin(t * speed + 1) * 0.3;
+      a.leftArm.rotation.z = 0.15 + Math.sin(t * speed * 0.5) * 0.1;
+      a.rightArm.rotation.z = -0.15 - Math.sin(t * speed * 0.5 + 0.5) * 0.1;
+      // Slight head bob
+      a.char.userData.head.rotation.x = Math.sin(t * 2) * 0.05;
+      a.char.userData.head.rotation.y = Math.sin(t * 0.5) * 0.1;
+    } else {
+      // Idle breathing animation
+      a.leftArm.rotation.x = Math.sin(t * 0.5) * 0.05;
+      a.rightArm.rotation.x = Math.sin(t * 0.5 + 1) * 0.05;
+      a.leftArm.rotation.z = 0.15;
+      a.rightArm.rotation.z = -0.15;
+      a.char.userData.head.rotation.x = Math.sin(t * 0.3) * 0.02;
+    }
+
+    // Status light pulse
+    if (a.status === 'active') {
+      a.statusLight.scale.setScalar(1 + Math.sin(t * 4) * 0.3);
+    } else if (a.status === 'error') {
+      a.statusLight.scale.setScalar(1 + Math.sin(t * 8) * 0.5);
+    } else {
+      a.statusLight.scale.setScalar(1);
+    }
+  }
+
+  // Purple light animation
+  purpleLight.intensity = 0.4 + Math.sin(t * 0.5) * 0.1;
+  greenLight.intensity = 0.3 + Math.sin(t * 0.7) * 0.1;
+
+  renderer.render(scene, camera);
+}
+
+// ─── Resize ───
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// ─── Start ───
+setTimeout(() => {
+  document.getElementById('loading').classList.add('hidden');
+  animate();
+}, 1500);
+</script>
+</body>
+</html>
