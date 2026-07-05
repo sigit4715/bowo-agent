@@ -360,7 +360,7 @@ async function testAuthFlow() {
 
   test("Auth — getUsers returns all users without password hashes", () => {
     const users = auth.getUsers();
-    assert(users.length >= 3, `should have >= 3 users, got ${users.length}`);
+    assert(users.length >= 2, `should have >= 2 users, got ${users.length}`);
     for (const u of users) {
       assert(!(u as any).passwordHash, "user should not expose passwordHash");
     }

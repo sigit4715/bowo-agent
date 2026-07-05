@@ -7,9 +7,9 @@
  * - Share memory between BOWO and Hermes
  */
 
-import { execSync, spawn } from "node:child_process";
-import fs from "node:fs";
-import path from "node:path";
+import { execSync, spawn, type ChildProcess } from "node:child_process";
+import * as fs from "node:fs";
+import * as path from "node:path";
 
 // ─── Types ──────────────────────────────────────────────
 
@@ -168,17 +168,17 @@ export class HermesIntegration {
     }
 
     return new Promise((resolve) => {
-      const proc = spawn(this.config.cliPath, args, {
+      const proc = (spawn as any)(this.config.cliPath, args, {
         cwd: options.workDir ?? this.config.workDir,
         stdio: ["pipe", "pipe", "pipe"],
         env: { ...process.env },
-      });
+      }) as ChildProcess;
 
       let stdout = "";
       let stderr = "";
 
-      proc.stdout.on("data", (data) => { stdout += data.toString(); });
-      proc.stderr.on("data", (data) => { stderr += data.toString(); });
+      proc.stdout?.on("data", (data: any) => { stdout += data.toString(); });
+      proc.stderr?.on("data", (data: any) => { stderr += data.toString(); });
 
       const timer = setTimeout(() => {
         proc.kill("SIGTERM");
@@ -222,16 +222,16 @@ export class HermesIntegration {
     if (this.config.profile) args.push("-p", this.config.profile);
     if (options.skills?.length) args.push("-s", options.skills.join(","));
 
-    const proc = spawn(this.config.cliPath, args, {
+    const proc = (spawn as any)(this.config.cliPath, args, {
       cwd: options.workDir ?? this.config.workDir,
       stdio: ["pipe", "pipe", "pipe"],
       detached: true,
-    });
+    }) as ChildProcess;
 
     proc.unref();
 
     return {
-      pid: proc.pid,
+      pid: proc.pid ?? null,
       kill: () => {
         try { process.kill(proc.pid!, "SIGTERM"); } catch {}
       },
@@ -260,15 +260,15 @@ export class HermesIntegration {
    */
   resumeSession(sessionId: string): Promise<{ output: string; exitCode: number }> {
     return new Promise((resolve) => {
-      const proc = spawn(this.config.cliPath, ["--resume", sessionId], {
+      const proc = (spawn as any)(this.config.cliPath, ["--resume", sessionId], {
         stdio: ["pipe", "pipe", "pipe"],
-      });
+      }) as ChildProcess;
 
       let stdout = "";
       let stderr = "";
 
-      proc.stdout.on("data", (d) => { stdout += d.toString(); });
-      proc.stderr.on("data", (d) => { stderr += d.toString(); });
+      proc.stdout?.on("data", (d: any) => { stdout += d.toString(); });
+      proc.stderr?.on("data", (d: any) => { stderr += d.toString(); });
 
       proc.on("close", (code) => {
         resolve({ output: stdout || stderr, exitCode: code ?? -1 });

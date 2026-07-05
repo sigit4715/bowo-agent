@@ -142,7 +142,7 @@ async function main() {
       goal: "Build todo app"
     });
     console.log(`  ⚡ Chain result: ${chainResult.status} (${chainResult.totalDuration}ms)`);
-    console.log(`  📦 Artifacts: ${chainResult.steps.filter(s => s.result?.artifacts?.length).length} steps produced output`);
+    console.log(`  📦 Artifacts: ${chainResult.steps.filter((s: any) => s.result?.artifacts?.length).length} steps produced output`);
   }
 
   // ─── Summary ───

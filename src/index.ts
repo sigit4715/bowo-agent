@@ -61,11 +61,6 @@ async function main() {
 
   const bowo = new Orchestrator({
     logLevel: "info",
-    parallel: false,
-    llm: {
-      ...(model && { model }),
-      ...(provider && { provider }),
-    },
   });
 
   // Show system status
@@ -96,8 +91,8 @@ async function main() {
   }
   console.log("╚══════════════════════════════════════════╝");
 
-  if (result.report) {
-    console.log("\n📊 Full report saved to output/");
+  if (result.totalArtifacts > 0) {
+    console.log(`\n📊 ${result.totalArtifacts} artifacts saved to output/`);
   }
 
   console.log("\n🤖 BOWO signing off. See you next mission! 🚀\n");
