@@ -5,8 +5,8 @@
  * Each tool has safety limits and error handling.
  */
 
-import fs from "node:fs";
-import path from "node:path";
+import * as fs from "node:fs";
+import * as path from "node:path";
 import { execSync, spawn } from "node:child_process";
 
 // ─── Types ──────────────────────────────────────────────

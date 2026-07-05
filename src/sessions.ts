@@ -5,8 +5,8 @@
  * in output/sessions/. Tracks completed steps, artifacts, and remaining work.
  */
 
-import fs from "node:fs";
-import path from "node:path";
+import * as fs from "node:fs";
+import * as path from "node:path";
 import { PipelineStatus, type Pipeline, type PipelineStep } from "./workflow.js";
 
 // ─── Types ──────────────────────────────────────────────
