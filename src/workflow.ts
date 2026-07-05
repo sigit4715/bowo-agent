@@ -97,7 +97,7 @@ export class Workflow extends EventEmitter {
           .filter((s) => s.result)
           .map((s) => ({
             agent: s.agentName,
-            output: s.result?.output,
+            output: s.result?.summary,
           }));
 
         const enrichedInput: TaskInput = {
@@ -125,12 +125,11 @@ export class Workflow extends EventEmitter {
         step.completedAt = new Date().toISOString();
         step.result = {
           agent: step.agentName,
-          status: "error",
-          output: null,
+          taskId: step.input.taskId,
+          status: "failed",
+          summary: String(err),
           artifacts: [],
-          suggestions: [],
           duration: 0,
-          error: String(err),
         };
 
         this.emit("step:error", { step, error: err });
