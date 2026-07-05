@@ -29,6 +29,13 @@ let modAudit: any = null;
 let modTemplates: any = null;
 let modMonitor: any = null;
 
+let modCache: any = null;
+let modDatabase: any = null;
+let modWebSocket: any = null;
+let modAuth: any = null;
+let modSanitize: any = null;
+let modAgentComposer: any = null;
+
 async function loadModules() {
   try { const m = await import("./hermes-brain.js"); HermesBrainClass = m.HermesBrain; } catch {}
   try { const m = await import("./cost-tracker.js"); modCostTracker = m.CostTracker; } catch {}
@@ -37,6 +44,12 @@ async function loadModules() {
   try { const m = await import("./audit.js"); modAudit = m.AuditLog; } catch {}
   try { const m = await import("./templates.js"); modTemplates = m.TemplateEngine; } catch {}
   try { const m = await import("./monitoring.js"); modMonitor = m.MonitoringCollector; } catch {}
+  try { const m = await import("./cache.js"); modCache = m.CacheManager; } catch {}
+  try { const m = await import("./database.js"); modDatabase = m.DatabaseManager; } catch {}
+  try { const m = await import("./websocket.js"); modWebSocket = m.DashboardWebSocket; } catch {}
+  try { const m = await import("./auth.js"); modAuth = m.AuthManager; } catch {}
+  try { const m = await import("./sanitize.js"); modSanitize = m.InputSanitizer; } catch {}
+  try { const m = await import("./agent-composition.js"); modAgentComposer = m.AgentComposer; } catch {}
 }
 
 export interface OrchestratorConfig {
@@ -69,6 +82,12 @@ export class Orchestrator extends EventEmitter {
   public templates: any = null;
   public monitor: any = null;
   public hermesBrain: any = null;
+  public cache: any = null;
+  public database: any = null;
+  public websocket: any = null;
+  public auth: any = null;
+  public sanitizer: any = null;
+  public agentComposer: any = null;
 
   constructor(config?: Partial<OrchestratorConfig>) {
     super();
@@ -89,6 +108,12 @@ export class Orchestrator extends EventEmitter {
     this.audit = modAudit ? new modAudit() : null;
     this.templates = modTemplates ? new modTemplates() : null;
     this.monitor = modMonitor ? new modMonitor() : null;
+    this.cache = modCache ? new modCache() : null;
+    this.database = modDatabase ? new modDatabase() : null;
+    this.websocket = modWebSocket ? new modWebSocket() : null;
+    this.auth = modAuth ? new modAuth() : null;
+    this.sanitizer = modSanitize ? new modSanitize() : null;
+    this.agentComposer = modAgentComposer ? new modAgentComposer(this.workflow, this.memory, this.comm) : null;
 
     // Register agents with recovery
     if (this.recovery?.registerAgent) {
