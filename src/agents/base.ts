@@ -210,4 +210,22 @@ export abstract class BaseAgent {
     }
     return this.tools.llm.fixBug(error, code, context);
   }
+
+  /**
+   * Ask LLM a general-purpose question and return the response content string.
+   * Returns null if LLM is not available or the call fails.
+   */
+  protected async askLLM(task: string, context?: string): Promise<string | null> {
+    try {
+      if (!this.llm || !this.llm.isAvailable()) {
+        return null;
+      }
+      const systemPrompt = this.config.systemPrompt;
+      const userMessage = context ? `${task}\n\nContext:\n${context}` : task;
+      const response = await this.llm.prompt(systemPrompt, userMessage);
+      return response.content;
+    } catch {
+      return null;
+    }
+  }
 }

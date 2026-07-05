@@ -1,0 +1,123 @@
+{
+  "meta": {
+    "timestamp": "2026-07-05T12:39:27.713Z",
+    "opsPerBenchmark": 200,
+    "nodeVersion": "v22.22.3",
+    "platform": "linux",
+    "arch": "x64"
+  },
+  "results": [
+    {
+      "name": "Pipeline — Sequential (5 steps)",
+      "ops": 200,
+      "totalMs": 3.69,
+      "avgMs": 0.02,
+      "opsPerSec": 54200.54,
+      "extra": "5 agents"
+    },
+    {
+      "name": "Pipeline — DAG Parallel (5 nodes, 3 waves)",
+      "ops": 200,
+      "totalMs": 1341.07,
+      "avgMs": 6.71,
+      "opsPerSec": 149.13,
+      "extra": "parallel waves"
+    },
+    {
+      "name": "Agent Response — Without LLM",
+      "ops": 200,
+      "totalMs": 0.15,
+      "avgMs": 0,
+      "opsPerSec": 1333333.33,
+      "extra": "mock agent"
+    },
+    {
+      "name": "Agent Response — LLM path (unavailable)",
+      "ops": 200,
+      "totalMs": 0.06,
+      "avgMs": 0,
+      "opsPerSec": 3333333.33,
+      "extra": "no provider"
+    },
+    {
+      "name": "Memory — Write",
+      "ops": 200,
+      "totalMs": 20.67,
+      "avgMs": 0.1,
+      "opsPerSec": 9675.86,
+      "extra": null
+    },
+    {
+      "name": "Memory — Read (query)",
+      "ops": 200,
+      "totalMs": 1.49,
+      "avgMs": 0.01,
+      "opsPerSec": 134228.19,
+      "extra": "200 entries"
+    },
+    {
+      "name": "Checkpoint — Save",
+      "ops": 200,
+      "totalMs": 2.9,
+      "avgMs": 0.01,
+      "opsPerSec": 68965.52,
+      "extra": null
+    },
+    {
+      "name": "Checkpoint — Load",
+      "ops": 200,
+      "totalMs": 1.31,
+      "avgMs": 0.01,
+      "opsPerSec": 152671.76,
+      "extra": "200 files"
+    },
+    {
+      "name": "Cache — Hit (get)",
+      "ops": 200,
+      "totalMs": 0.11,
+      "avgMs": 0,
+      "opsPerSec": 1818181.82,
+      "extra": null
+    },
+    {
+      "name": "Cache — Miss (get missing)",
+      "ops": 200,
+      "totalMs": 0.02,
+      "avgMs": 0,
+      "opsPerSec": 10000000,
+      "extra": null
+    },
+    {
+      "name": "Database — Insert",
+      "ops": 200,
+      "totalMs": 17.88,
+      "avgMs": 0.09,
+      "opsPerSec": 11185.68,
+      "extra": null
+    },
+    {
+      "name": "Database — Find (filter)",
+      "ops": 200,
+      "totalMs": 12.94,
+      "avgMs": 0.06,
+      "opsPerSec": 15455.95,
+      "extra": "200 records"
+    },
+    {
+      "name": "Database — Update",
+      "ops": 200,
+      "totalMs": 20.37,
+      "avgMs": 0.1,
+      "opsPerSec": 9818.36,
+      "extra": "200 records"
+    },
+    {
+      "name": "Database — InsertMany (batch 100)",
+      "ops": 200,
+      "totalMs": 0.39,
+      "avgMs": 0,
+      "opsPerSec": 512820.51,
+      "extra": null
+    }
+  ]
+}

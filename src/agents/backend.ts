@@ -91,7 +91,7 @@ Generate clean, production-quality code with proper types and error handling.`,
     })) ?? [];
 
     for (const artifact of artifacts) {
-      this.memory.store("artifact", "backend", artifact);
+      this.memory.store(MemoryType.ARTIFACT, "backend", artifact);
     }
 
     this.emit("backend:complete", { taskId: input.taskId, files: writtenFiles });
@@ -169,7 +169,7 @@ export default app;`,
     }));
 
     for (const artifact of artifacts) {
-      this.memory.store("artifact", "backend", artifact);
+      this.memory.store(MemoryType.ARTIFACT, "backend", artifact);
     }
 
     return Promise.resolve({
