@@ -34,8 +34,8 @@ interface JWTClaims {
  * Base64url encode (no padding).
  */
 function base64url(data: Buffer | string): string {
-  const str = typeof data === 'string' ? data : data.toString('base64');
-  return str.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  const buf = typeof data === 'string' ? Buffer.from(data, 'utf-8') : data;
+  return buf.toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
 /**
