@@ -3,465 +3,515 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BOWO 3D Office — Real-time Agent Building</title>
+  <title>BOWO 3D Office — Human Activities</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Segoe UI', sans-serif; background: #0a0a1a; color: #e0e0e0; overflow: hidden; }
-    #canvas3d { position: fixed; top: 0; left: 0; width: 100%; height: 100%; }
+    #c { position: fixed; top: 0; left: 0; width: 100%; height: 100%; }
 
-    /* ─── HUD Overlay ─── */
-    .hud { position: fixed; top: 0; left: 0; right: 0; height: 56px; background: rgba(10,10,26,0.85); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(108,92,231,0.3); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; z-index: 100; }
-    .hud h1 { font-size: 18px; color: #a29bfe; display: flex; align-items: center; gap: 8px; }
-    .hud-stats { display: flex; gap: 16px; font-size: 13px; }
-    .hud-stat { display: flex; align-items: center; gap: 5px; }
-    .hud-dot { width: 8px; height: 8px; border-radius: 50%; }
-    .hud-dot.green { background: #00b894; box-shadow: 0 0 8px #00b894; }
-    .hud-dot.gray { background: #636e72; }
-    .hud-dot.red { background: #e17055; box-shadow: 0 0 8px #e17055; }
+    .hud { position: fixed; top: 0; left: 0; right: 0; height: 52px; background: rgba(10,10,26,0.88); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(108,92,231,0.3); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; z-index: 100; }
+    .hud h1 { font-size: 16px; color: #a29bfe; }
+    .hud-stats { display: flex; gap: 14px; font-size: 12px; }
+    .hs { display: flex; align-items: center; gap: 4px; }
+    .dot { width: 7px; height: 7px; border-radius: 50%; }
+    .dot.g { background: #00b894; box-shadow: 0 0 6px #00b894; }
+    .dot.y { background: #fdcb6e; box-shadow: 0 0 6px #fdcb6e; }
+    .dot.r { background: #e17055; }
+    .dot.b { background: #74b9ff; }
 
-    /* ─── Info Panel (click agent) ─── */
-    .info-panel { position: fixed; bottom: 20px; left: 20px; width: 320px; background: rgba(10,10,26,0.92); backdrop-filter: blur(12px); border: 1px solid rgba(108,92,231,0.4); border-radius: 14px; padding: 18px; z-index: 100; display: none; }
-    .info-panel.show { display: block; }
-    .info-panel h2 { font-size: 16px; color: #a29bfe; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
-    .info-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(108,92,231,0.1); font-size: 13px; }
-    .info-row .lbl { color: #636e72; }
-    .info-row .val { color: #dfe6e9; font-weight: 600; }
-    .info-task { margin-top: 10px; padding: 10px; background: rgba(108,92,231,0.12); border-radius: 8px; border-left: 3px solid #6c5ce7; font-size: 12px; color: #a29bfe; }
+    .panel { position: fixed; bottom: 16px; left: 16px; width: 300px; background: rgba(10,10,26,0.92); backdrop-filter: blur(12px); border: 1px solid rgba(108,92,231,0.4); border-radius: 12px; padding: 14px; z-index: 100; display: none; }
+    .panel.show { display: block; }
+    .panel h2 { font-size: 15px; color: #a29bfe; margin-bottom: 8px; }
+    .pr { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid rgba(108,92,231,0.1); font-size: 12px; }
+    .pr .l { color: #636e72; }
+    .pr .v { color: #dfe6e9; font-weight: 600; }
+    .pt { margin-top: 8px; padding: 8px; background: rgba(108,92,231,0.12); border-radius: 6px; border-left: 3px solid #6c5ce7; font-size: 11px; color: #a29bfe; }
 
-    /* ─── Bottom Controls ─── */
-    .controls { position: fixed; bottom: 20px; right: 20px; display: flex; gap: 10px; z-index: 100; }
-    .ctrl-btn { padding: 8px 16px; border: 1px solid rgba(108,92,231,0.3); background: rgba(10,10,26,0.8); backdrop-filter: blur(8px); color: #a29bfe; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.2s; }
-    .ctrl-btn:hover { background: rgba(108,92,231,0.3); border-color: #6c5ce7; }
-    .ctrl-btn.active { background: rgba(0,184,148,0.2); border-color: #00b894; color: #00b894; }
+    .ctrls { position: fixed; bottom: 16px; right: 16px; display: flex; gap: 8px; z-index: 100; }
+    .cb { padding: 7px 14px; border: 1px solid rgba(108,92,231,0.3); background: rgba(10,10,26,0.8); backdrop-filter: blur(8px); color: #a29bfe; border-radius: 7px; cursor: pointer; font-size: 11px; font-weight: 600; transition: all 0.2s; }
+    .cb:hover { background: rgba(108,92,231,0.3); }
+    .cb.on { background: rgba(0,184,148,0.2); border-color: #00b894; color: #00b894; }
 
-    /* ─── Loading ─── */
-    .loading { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #0a0a1a; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 999; transition: opacity 0.5s; }
-    .loading.hidden { opacity: 0; pointer-events: none; }
-    .loading h2 { color: #a29bfe; margin-top: 16px; }
-    .loading p { color: #636e72; font-size: 14px; margin-top: 8px; }
-    .loader { width: 48px; height: 48px; border: 3px solid #2d2d44; border-top-color: #6c5ce7; border-radius: 50%; animation: spin 1s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
+    .load { position: fixed; inset: 0; background: #0a0a1a; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 999; transition: opacity 0.5s; }
+    .load.off { opacity: 0; pointer-events: none; }
+    .load h2 { color: #a29bfe; margin-top: 14px; }
+    .load p { color: #636e72; font-size: 13px; margin-top: 6px; }
+    .spin { width: 44px; height: 44px; border: 3px solid #2d2d44; border-top-color: #6c5ce7; border-radius: 50%; animation: sp 1s linear infinite; }
+    @keyframes sp { to { transform: rotate(360deg); } }
+
+    /* Activity legend */
+    .legend { position: fixed; top: 56px; right: 16px; background: rgba(10,10,26,0.88); backdrop-filter: blur(12px); border: 1px solid rgba(108,92,231,0.3); border-radius: 10px; padding: 12px; z-index: 100; font-size: 11px; max-width: 200px; }
+    .legend h3 { color: #a29bfe; font-size: 12px; margin-bottom: 8px; }
+    .leg-item { display: flex; align-items: center; gap: 6px; padding: 3px 0; }
+    .leg-dot { width: 10px; height: 10px; border-radius: 50%; }
   </style>
 </head>
 <body>
-  <!-- Loading -->
-  <div class="loading" id="loading">
-    <div class="loader"></div>
-    <h2>🏢 Building BOWO Office...</h2>
-    <p>Constructing 3D environment & spawning agents</p>
+  <div class="load" id="ld">
+    <div class="spin"></div>
+    <h2>🏢 Building Office...</h2>
+    <p>Spawning agents with activities</p>
   </div>
 
-  <!-- 3D Canvas -->
-  <canvas id="canvas3d"></canvas>
+  <canvas id="c"></canvas>
 
-  <!-- HUD -->
   <div class="hud">
     <h1>🏢 BOWO 3D Office</h1>
     <div class="hud-stats">
-      <div class="hud-stat"><div class="hud-dot green"></div><span id="sActive">0</span> Working</div>
-      <div class="hud-stat"><div class="hud-dot gray"></div><span id="sIdle">0</span> Idle</div>
-      <div class="hud-stat"><div class="hud-dot red"></div><span id="sError">0</span> Error</div>
-      <div class="hud-stat">📋 <span id="sTasks">0</span> Tasks Done</div>
+      <div class="hs"><div class="dot g"></div><span id="sW">0</span> Working</div>
+      <div class="hs"><div class="dot y"></div><span id="sWk">0</span> Walking</div>
+      <div class="hs"><div class="dot b"></div><span id="sT">0</span> Thinking</div>
+      <div class="hs"><span id="sTk">0</span> Tasks Done</div>
     </div>
   </div>
 
-  <!-- Info Panel -->
-  <div class="info-panel" id="infoPanel">
-    <h2 id="infoTitle">Agent</h2>
-    <div class="info-row"><span class="lbl">Status</span><span class="val" id="infoStatus">—</span></div>
-    <div class="info-row"><span class="lbl">Tasks Done</span><span class="val" id="infoTasks">0</span></div>
-    <div class="info-row"><span class="lbl">Role</span><span class="val" id="infoRole">—</span></div>
-    <div class="info-task" id="infoTask">No active task</div>
+  <div class="legend">
+    <h3>🎯 Activities</h3>
+    <div class="leg-item"><div class="leg-dot" style="background:#00b894"></div> Typing at desk</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#6c5ce7"></div> Walking</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#fdcb6e"></div> Thinking</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#e17055"></div> Coffee break</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#74b9ff"></div> Whiteboard</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#fd79a8"></div> Stretching</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#55efc4"></div> Discussion</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#636e72"></div> Idle</div>
   </div>
 
-  <!-- Controls -->
-  <div class="controls">
-    <button class="ctrl-btn active" id="btnSim" onclick="toggleSim()">⏸ Pause</button>
-    <button class="ctrl-btn" onclick="resetCam()">🎥 Reset Cam</button>
-    <button class="ctrl-btn" onclick="toggleRotate()">🔄 Auto-Rotate</button>
+  <div class="panel" id="pnl">
+    <h2 id="pT">Agent</h2>
+    <div class="pr"><span class="l">Activity</span><span class="v" id="pA">—</span></div>
+    <div class="pr"><span class="l">Status</span><span class="v" id="pS">—</span></div>
+    <div class="pr"><span class="l">Tasks Done</span><span class="v" id="pTk">0</span></div>
+    <div class="pr"><span class="l">Role</span><span class="v" id="pR">—</span></div>
+    <div class="pt" id="pTs">No active task</div>
+  </div>
+
+  <div class="ctrls">
+    <button class="cb on" id="bSim" onclick="toggleSim()">⏸ Pause</button>
+    <button class="cb" onclick="resetCam()">🎥 Cam</button>
+    <button class="cb on" id="bRot" onclick="toggleRot()">🔄 Rotate</button>
   </div>
 
 <script>
 // ═══════════════════════════════════════════════════════
-//  BOWO 3D OFFICE — Three.js Real-time Visualization
+//  BOWO 3D OFFICE — Human Activities
 // ═══════════════════════════════════════════════════════
 
+const ACTIVITIES = {
+  typing:    { label: 'Typing',      color: 0x00b894, emoji: '⌨️' },
+  walking:   { label: 'Walking',     color: 0x6c5ce7, emoji: '🚶' },
+  thinking:  { label: 'Thinking',    color: 0xfdcb6e, emoji: '🤔' },
+  coffee:    { label: 'Coffee Break', color: 0xe17055, emoji: '☕' },
+  whiteboard:{ label: 'Whiteboard',  color: 0x74b9ff, emoji: '📝' },
+  stretching:{ label: 'Stretching',  color: 0xfd79a8, emoji: '🧘' },
+  discuss:   { label: 'Discussion',  color: 0x55efc4, emoji: '💬' },
+  idle:      { label: 'Idle',        color: 0x636e72, emoji: '😴' },
+  error:     { label: 'Error',       color: 0xe17055, emoji: '❌' },
+};
+
+const LOCATIONS = {
+  desk:      [[-3.5,-3.5],[0,-3.5],[3.5,-3.5],[-3.5,0],[0,0],[3.5,0],[-3.5,3.5],[0,3.5],[3.5,3.5]],
+  whiteboard:[[-5, -1.5], [-5, 1.5]],
+  coffee:    [[5.5, -2], [5.5, 2]],
+  meeting:   [[0, -5.5], [2, -5.5], [-2, -5.5]],
+  couch:     [[5.5, 4.5], [-5.5, 4.5]],
+  walkway:   [[-2, -1], [2, -1], [-2, 1], [2, 1], [0, -2], [0, 2]],
+};
+
 const AGENTS = [
-  { id:'planner',   name:'Planner',   icon:'📋', role:'Task Planning',     color:0x6c5ce7, desk:[-3,0,-3] },
-  { id:'architect', name:'Architect', icon:'🏗️', role:'System Design',     color:0xa29bfe, desk:[0,0,-3] },
-  { id:'backend',   name:'Backend',   icon:'⚙️', role:'API Development',   color:0x00b894, desk:[3,0,-3] },
-  { id:'frontend',  name:'Frontend',  icon:'🎨', role:'UI/UX Development', color:0xfd79a8, desk:[-3,0,0] },
-  { id:'qa',        name:'QA',        icon:'🧪', role:'Testing',           color:0xfdcb6e, desk:[0,0,0] },
-  { id:'security',  name:'Security',  icon:'🔒', role:'Security Audit',    color:0xe17055, desk:[3,0,0] },
-  { id:'debug',     name:'Debugger',  icon:'🐛', role:'Bug Fixing',        color:0x00cec9, desk:[-3,0,3] },
-  { id:'reporter',  name:'Reporter',  icon:'📊', role:'Reporting',         color:0x74b9ff, desk:[0,0,3] },
-  { id:'devops',    name:'DevOps',    icon:'🚀', role:'Deployment',        color:0x55efc4, desk:[3,0,3] },
+  { id:'planner',   name:'Planner',   icon:'📋', role:'Task Planning',     color:0x6c5ce7, deskIdx:0 },
+  { id:'architect', name:'Architect', icon:'🏗️', role:'System Design',     color:0xa29bfe, deskIdx:1 },
+  { id:'backend',   name:'Backend',   icon:'⚙️', role:'API Development',   color:0x00b894, deskIdx:2 },
+  { id:'frontend',  name:'Frontend',  icon:'🎨', role:'UI/UX Development', color:0xfd79a8, deskIdx:3 },
+  { id:'qa',        name:'QA',        icon:'🧪', role:'Testing',           color:0xfdcb6e, deskIdx:4 },
+  { id:'security',  name:'Security',  icon:'🔒', role:'Security Audit',    color:0xe17055, deskIdx:5 },
+  { id:'debug',     name:'Debugger',  icon:'🐛', role:'Bug Fixing',        color:0x00cec9, deskIdx:6 },
+  { id:'reporter',  name:'Reporter',  icon:'📊', role:'Reporting',         color:0x74b9ff, deskIdx:7 },
+  { id:'devops',    name:'DevOps',    icon:'🚀', role:'Deployment',        color:0x55efc4, deskIdx:8 },
 ];
 
 const TASKS = [
   'Building REST API','Writing tests','Code review','Deploying to prod',
-  'Fixing auth bug','Creating dashboard','Optimizing queries','Setting up CI/CD',
-  'Security audit','Generating docs','Monitoring health','Refactoring code',
-  'Implementing cache','Setting up rate limits','Designing schema',
+  'Fixing auth bug','Creating dashboard','Optimizing queries','Security audit',
+  'Generating docs','Monitoring health','Refactoring code','Implementing cache',
 ];
 
-// ─── Three.js Setup ───
-const canvas = document.getElementById('canvas3d');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.2;
+// ─── Three.js ───
+const canvas = document.getElementById('c');
+const R = new THREE.WebGLRenderer({ canvas, antialias: true });
+R.setSize(innerWidth, innerHeight);
+R.setPixelRatio(Math.min(devicePixelRatio, 2));
+R.shadowMap.enabled = true;
+R.shadowMap.type = THREE.PCFSoftShadowMap;
+R.toneMapping = THREE.ACESFilmicToneMapping;
+R.toneMappingExposure = 1.1;
 
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x0a0a1a);
-scene.fog = new THREE.Fog(0x0a0a1a, 20, 40);
+const S = new THREE.Scene();
+S.background = new THREE.Color(0x0a0a1a);
+S.fog = new THREE.Fog(0x0a0a1a, 25, 45);
 
-const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
-camera.position.set(12, 14, 12);
-camera.lookAt(0, 0, 0);
+const C = new THREE.PerspectiveCamera(45, innerWidth/innerHeight, 0.1, 100);
+C.position.set(14, 16, 14);
+C.lookAt(0, 0, 0);
 
-// ─── Lights ───
-const ambientLight = new THREE.AmbientLight(0x404060, 0.6);
-scene.add(ambientLight);
+// Lights
+S.add(new THREE.AmbientLight(0x404060, 0.5));
+const dL = new THREE.DirectionalLight(0xffffff, 0.7);
+dL.position.set(10, 15, 10);
+dL.castShadow = true;
+dL.shadow.mapSize.set(2048, 2048);
+dL.shadow.camera.near = 0.5;
+dL.shadow.camera.far = 50;
+dL.shadow.camera.left = -15;
+dL.shadow.camera.right = 15;
+dL.shadow.camera.top = 15;
+dL.shadow.camera.bottom = -15;
+S.add(dL);
+const pL1 = new THREE.PointLight(0x6c5ce7, 0.3, 25); pL1.position.set(-6, 8, -6); S.add(pL1);
+const pL2 = new THREE.PointLight(0x00b894, 0.25, 25); pL2.position.set(6, 8, 6); S.add(pL2);
 
-const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-dirLight.position.set(10, 15, 10);
-dirLight.castShadow = true;
-dirLight.shadow.mapSize.set(2048, 2048);
-dirLight.shadow.camera.near = 0.5;
-dirLight.shadow.camera.far = 50;
-dirLight.shadow.camera.left = -15;
-dirLight.shadow.camera.right = 15;
-dirLight.shadow.camera.top = 15;
-dirLight.shadow.camera.bottom = -15;
-scene.add(dirLight);
+// Materials
+const fM = new THREE.MeshStandardMaterial({ color: 0x1a1a2e, roughness: 0.8 });
+const wM = new THREE.MeshStandardMaterial({ color: 0x16213e, roughness: 0.6, transparent: true, opacity: 0.6 });
+const dM = new THREE.MeshStandardMaterial({ color: 0x2d2d44, roughness: 0.5 });
+const sM = new THREE.MeshStandardMaterial({ color: 0x0f3460, emissive: 0x1a1a5e, emissiveIntensity: 0.4 });
 
-const purpleLight = new THREE.PointLight(0x6c5ce7, 0.4, 20);
-purpleLight.position.set(-5, 8, -5);
-scene.add(purpleLight);
+// Floor
+const floor = new THREE.Mesh(new THREE.BoxGeometry(14, 0.2, 12), fM);
+floor.position.y = -0.1; floor.receiveShadow = true; S.add(floor);
+const gridH = new THREE.GridHelper(14, 14, 0x6c5ce7, 0x2d2d44);
+gridH.position.set(0, 0.01, 0);
+S.add(gridH);
 
-const greenLight = new THREE.PointLight(0x00b894, 0.3, 20);
-greenLight.position.set(5, 8, 5);
-scene.add(greenLight);
+// Walls
+function wall(w,h,d,x,y,z) { const m = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), wM); m.position.set(x,y,z); S.add(m); }
+wall(14,4,0.12, 0,2,-6); wall(14,4,0.12, 0,2,6); wall(0.12,4,12, -7,2,0); wall(0.12,4,12, 7,2,0);
 
-// ─── Materials ───
-const floorMat = new THREE.MeshStandardMaterial({ color: 0x1a1a2e, roughness: 0.8, metalness: 0.2 });
-const wallMat = new THREE.MeshStandardMaterial({ color: 0x16213e, roughness: 0.6, metalness: 0.1, transparent: true, opacity: 0.7 });
-const deskMat = new THREE.MeshStandardMaterial({ color: 0x2d2d44, roughness: 0.5, metalness: 0.3 });
-const screenMat = new THREE.MeshStandardMaterial({ color: 0x0f3460, roughness: 0.3, metalness: 0.5, emissive: 0x1a1a5e, emissiveIntensity: 0.3 });
-const chairMat = new THREE.MeshStandardMaterial({ color: 0x3d3d5c, roughness: 0.6, metalness: 0.2 });
-
-// ─── Floor ───
-const floor = new THREE.Mesh(new THREE.BoxGeometry(14, 0.2, 10), floorMat);
-floor.position.y = -0.1;
-floor.receiveShadow = true;
-scene.add(floor);
-
-// Grid lines on floor
-const gridHelper = new THREE.GridHelper(14, 14, 0x6c5ce7, 0x2d2d44);
-gridHelper.position.y = 0.01;
-scene.add(gridHelper);
-
-// ─── Walls (transparent) ───
-function createWall(w, h, d, x, y, z) {
-  const wall = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), wallMat);
-  wall.position.set(x, y, z);
-  wall.castShadow = true;
-  scene.add(wall);
-  return wall;
+// Whiteboards
+function makeWhiteboard(x,z,ry=0) {
+  const g = new THREE.Group();
+  const board = new THREE.Mesh(new THREE.BoxGeometry(2, 1.5, 0.08), new THREE.MeshStandardMaterial({ color: 0xecf0f1, emissive: 0x2d3436, emissiveIntensity: 0.1 }));
+  board.position.y = 2.2; g.add(board);
+  const frame = new THREE.Mesh(new THREE.BoxGeometry(2.1, 1.6, 0.05), dM);
+  frame.position.y = 2.2; frame.position.z = -0.05; g.add(frame);
+  g.position.set(x, 0, z); g.rotation.y = ry; S.add(g);
 }
-createWall(14, 4, 0.15, 0, 2, -5);   // back
-createWall(14, 4, 0.15, 0, 2, 5);    // front
-createWall(0.15, 4, 10, -7, 2, 0);   // left
-createWall(0.15, 4, 10, 7, 2, 0);    // right
-createWall(14, 0.15, 10, 0, 4, 0);   // ceiling (transparent)
+makeWhiteboard(-6, -2, Math.PI/2);
+makeWhiteboard(-6, 2, Math.PI/2);
 
-// ─── Desk + Chair + Screen ───
-function createDesk(x, z) {
-  const group = new THREE.Group();
-  // Desk top
-  const top = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.1, 1), deskMat);
-  top.position.set(0, 0.75, 0);
-  top.castShadow = true;
-  group.add(top);
-  // Legs
-  for (const lx of [-0.8, 0.8]) {
-    for (const lz of [-0.4, 0.4]) {
-      const leg = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.75, 0.08), deskMat);
-      leg.position.set(lx, 0.375, lz);
-      group.add(leg);
-    }
+// Coffee machine
+function makeCoffeeMachine(x,z) {
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.BoxGeometry(0.6, 1, 0.5), new THREE.MeshStandardMaterial({ color: 0x2d3436 }));
+  body.position.y = 0.7; g.add(body);
+  const top = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.15, 0.4), new THREE.MeshStandardMaterial({ color: 0xe17055 }));
+  top.position.y = 1.3; g.add(top);
+  // Cup
+  const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.05, 0.12, 8), new THREE.MeshStandardMaterial({ color: 0xffffff }));
+  cup.position.set(0.35, 0.5, 0); g.add(cup);
+  g.position.set(x, 0, z); S.add(g);
+}
+makeCoffeeMachine(6, -3);
+makeCoffeeMachine(6, 3);
+
+// Couch
+function makeCouch(x,z,ry=0) {
+  const g = new THREE.Group();
+  const seat = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.3, 0.6), new THREE.MeshStandardMaterial({ color: 0x6c5ce7 }));
+  seat.position.y = 0.35; g.add(seat);
+  const back = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.5, 0.15), new THREE.MeshStandardMaterial({ color: 0x5f3dc4 }));
+  back.position.set(0, 0.6, -0.25); g.add(back);
+  g.position.set(x, 0, z); g.rotation.y = ry; S.add(g);
+}
+makeCouch(6, 5, -Math.PI/2);
+makeCouch(-6, 5, Math.PI/2);
+
+// Meeting table
+const meetTable = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 0.1, 16), dM);
+meetTable.position.set(0, 0.7, -5.5); S.add(meetTable);
+for (let i = 0; i < 4; i++) {
+  const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.7, 6), dM);
+  const a = (i / 4) * Math.PI * 2;
+  leg.position.set(Math.cos(a) * 0.7 + 0, 0.35, Math.sin(a) * 0.7 - 5.5);
+  S.add(leg);
+}
+
+// ─── Desk builder ───
+function makeDesk(x, z) {
+  const g = new THREE.Group();
+  const top = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.08, 0.9), dM);
+  top.position.y = 0.75; top.castShadow = true; g.add(top);
+  for (const lx of [-0.7, 0.7]) for (const lz of [-0.35, 0.35]) {
+    const leg = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.75, 0.06), dM);
+    leg.position.set(lx, 0.375, lz); g.add(leg);
   }
-  // Monitor
-  const monitor = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.8, 0.05), screenMat);
-  monitor.position.set(0, 1.5, -0.3);
-  monitor.castShadow = true;
-  group.add(monitor);
-  // Monitor stand
-  const stand = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.3, 0.1), deskMat);
-  stand.position.set(0, 1.05, -0.3);
-  group.add(stand);
-  // Screen glow
-  const glow = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 0.7), new THREE.MeshBasicMaterial({ color: 0x1a5276, transparent: true, opacity: 0.6 }));
-  glow.position.set(0, 1.5, -0.27);
-  group.add(glow);
-  // Chair
-  const seat = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.08, 0.6), chairMat);
-  seat.position.set(0, 0.5, 0.8);
-  group.add(seat);
-  const backrest = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.7, 0.08), chairMat);
-  backrest.position.set(0, 0.85, 1.08);
-  group.add(backrest);
-
-  group.position.set(x, 0, z);
-  scene.add(group);
-  return group;
+  const mon = new THREE.Mesh(new THREE.BoxGeometry(1, 0.65, 0.04), sM);
+  mon.position.set(0, 1.45, -0.3); g.add(mon);
+  const stand = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.25, 0.08), dM);
+  stand.position.set(0, 1.0, -0.3); g.add(stand);
+  const chair = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.06, 0.5), new THREE.MeshStandardMaterial({ color: 0x3d3d5c }));
+  chair.position.set(0, 0.45, 0.7); g.add(chair);
+  const back = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.55, 0.06), new THREE.MeshStandardMaterial({ color: 0x3d3d5c }));
+  back.position.set(0, 0.75, 0.95); g.add(back);
+  g.position.set(x, 0, z);
+  S.add(g);
+  return g;
 }
 
 // ─── Humanoid Character ───
-function createCharacter(color, x, z) {
-  const group = new THREE.Group();
-  const skinMat = new THREE.MeshStandardMaterial({ color: 0xf5cba7, roughness: 0.7 });
-  const bodyMat = new THREE.MeshStandardMaterial({ color, roughness: 0.5, metalness: 0.1 });
-  const hairMat = new THREE.MeshStandardMaterial({ color: 0x2d3436, roughness: 0.8 });
+function makeHuman(color) {
+  const g = new THREE.Group();
+  const skin = new THREE.MeshStandardMaterial({ color: 0xf5cba7, roughness: 0.7 });
+  const body = new THREE.MeshStandardMaterial({ color, roughness: 0.5 });
+  const pants = new THREE.MeshStandardMaterial({ color: 0x2d3436 });
 
   // Head
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.22, 16, 16), skinMat);
-  head.position.y = 1.55;
-  head.castShadow = true;
-  group.add(head);
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.2, 12, 12), skin);
+  head.position.y = 1.55; head.castShadow = true; g.add(head);
 
   // Hair
-  const hair = new THREE.Mesh(new THREE.SphereGeometry(0.23, 16, 16), hairMat);
-  hair.position.y = 1.62;
-  hair.scale.set(1, 0.6, 1);
-  group.add(hair);
+  const hair = new THREE.Mesh(new THREE.SphereGeometry(0.21, 12, 12), new THREE.MeshStandardMaterial({ color: 0x2d3436 }));
+  hair.position.y = 1.62; hair.scale.set(1, 0.5, 1); g.add(hair);
 
-  // Body (torso)
-  const body = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.5, 0.25), bodyMat);
-  body.position.y = 1.1;
-  body.castShadow = true;
-  group.add(body);
-
-  // Left arm
-  const leftArm = new THREE.Group();
-  const lArm = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.4, 0.12), bodyMat);
-  lArm.position.y = -0.2;
-  leftArm.add(lArm);
-  leftArm.position.set(-0.28, 1.25, 0);
-  leftArm.rotation.z = 0.15;
-  group.add(leftArm);
-
-  // Right arm
-  const rightArm = new THREE.Group();
-  const rArm = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.4, 0.12), bodyMat);
-  rArm.position.y = -0.2;
-  rightArm.add(rArm);
-  rightArm.position.set(0.28, 1.25, 0);
-  rightArm.rotation.z = -0.15;
-  group.add(rightArm);
-
-  // Legs
-  for (const side of [-0.1, 0.1]) {
-    const leg = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.5, 0.14), new THREE.MeshStandardMaterial({ color: 0x2d3436 }));
-    leg.position.set(side, 0.55, 0);
-    group.add(leg);
+  // Eyes
+  for (const ex of [-0.07, 0.07]) {
+    const eye = new THREE.Mesh(new THREE.SphereGeometry(0.03, 6, 6), new THREE.MeshBasicMaterial({ color: 0x2d3436 }));
+    eye.position.set(ex, 1.57, 0.18); g.add(eye);
   }
 
-  group.position.set(x, 0, z);
-  group.userData = { leftArm, rightArm, head, body, baseY: 0 };
-  scene.add(group);
-  return group;
+  // Body
+  const torso = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.45, 0.2), body);
+  torso.position.y = 1.1; torso.castShadow = true; g.add(torso);
+
+  // Arms (with hands)
+  const lArm = new THREE.Group();
+  const lUpper = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.35, 0.1), body);
+  lUpper.position.y = -0.175; lArm.add(lUpper);
+  const lHand = new THREE.Mesh(new THREE.SphereGeometry(0.05, 6, 6), skin);
+  lHand.position.y = -0.38; lArm.add(lHand);
+  lArm.position.set(-0.24, 1.25, 0);
+  g.add(lArm);
+
+  const rArm = new THREE.Group();
+  const rUpper = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.35, 0.1), body);
+  rUpper.position.y = -0.175; rArm.add(rUpper);
+  const rHand = new THREE.Mesh(new THREE.SphereGeometry(0.05, 6, 6), skin);
+  rHand.position.y = -0.38; rArm.add(rHand);
+  rArm.position.set(0.24, 1.25, 0);
+  g.add(rArm);
+
+  // Legs
+  const lLeg = new THREE.Group();
+  const lThigh = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.4, 0.12), pants);
+  lThigh.position.y = -0.2; lLeg.add(lThigh);
+  const lFoot = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.08, 0.18), new THREE.MeshStandardMaterial({ color: 0x1a1a2e }));
+  lFoot.position.set(0, -0.44, 0.03); lLeg.add(lFoot);
+  lLeg.position.set(-0.1, 0.6, 0);
+  g.add(lLeg);
+
+  const rLeg = new THREE.Group();
+  const rThigh = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.4, 0.12), pants);
+  rThigh.position.y = -0.2; rLeg.add(rThigh);
+  const rFoot = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.08, 0.18), new THREE.MeshStandardMaterial({ color: 0x1a1a2e }));
+  rFoot.position.set(0, -0.44, 0.03); rLeg.add(rFoot);
+  rLeg.position.set(0.1, 0.6, 0);
+  g.add(rLeg);
+
+  // Status light
+  const light = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 8), new THREE.MeshBasicMaterial({ color: 0x636e72 }));
+  light.position.y = 1.85; g.add(light);
+
+  g.userData = { lArm, rArm, lLeg, rLeg, head, torso, light, lHand, rHand };
+  return g;
 }
 
-// ─── Status Light (above head) ───
-function createStatusLight(color) {
-  const light = new THREE.Mesh(
-    new THREE.SphereGeometry(0.06, 8, 8),
-    new THREE.MeshBasicMaterial({ color })
-  );
-  return light;
+// ─── Name label sprite ───
+function makeLabel(text, color) {
+  const c = document.createElement('canvas');
+  c.width = 256; c.height = 48;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = 'rgba(10,10,26,0.85)';
+  ctx.beginPath(); ctx.roundRect(0, 0, 256, 48, 8); ctx.fill();
+  ctx.fillStyle = '#' + color.toString(16).padStart(6, '0');
+  ctx.font = 'bold 20px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(text, 128, 32);
+  const tex = new THREE.CanvasTexture(c);
+  const spr = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true }));
+  spr.scale.set(1.3, 0.25, 1);
+  return spr;
 }
 
 // ─── Build Scene ───
-const agentObjects = {};
+const agents = {};
 
-AGENTS.forEach((agent, i) => {
-  const dx = agent.desk[0];
-  const dz = agent.desk[2];
+AGENTS.forEach((a, i) => {
+  const [dx, dz] = LOCATIONS.desk[a.deskIdx];
+  makeDesk(dx, dz);
 
-  // Desk
-  createDesk(dx, dz);
+  const human = makeHuman(a.color);
+  human.position.set(dx, 0, dz + 0.5);
+  human.rotation.y = Math.PI;
 
-  // Character (sitting at desk, facing screen)
-  const char = createCharacter(agent.color, dx, dz + 0.4);
-  char.rotation.y = Math.PI; // face desk
+  const label = makeLabel(`${a.icon} ${a.name}`, a.color);
+  label.position.y = 2.1;
+  human.add(label);
 
-  // Status light
-  const statusLight = createStatusLight(0x636e72);
-  statusLight.position.y = 1.9;
-  char.add(statusLight);
+  S.add(human);
 
-  // Name label (using sprite)
-  const labelCanvas = document.createElement('canvas');
-  labelCanvas.width = 256;
-  labelCanvas.height = 64;
-  const ctx = labelCanvas.getContext('2d');
-  ctx.fillStyle = 'rgba(10,10,26,0.8)';
-  ctx.roundRect(0, 0, 256, 64, 8);
-  ctx.fill();
-  ctx.fillStyle = '#a29bfe';
-  ctx.font = 'bold 24px sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText(agent.icon + ' ' + agent.name, 128, 42);
-
-  const labelTexture = new THREE.CanvasTexture(labelCanvas);
-  const labelMat = new THREE.SpriteMaterial({ map: labelTexture, transparent: true });
-  const label = new THREE.Sprite(labelMat);
-  label.scale.set(1.5, 0.4, 1);
-  label.position.y = 2.2;
-  char.add(label);
-
-  agentObjects[agent.id] = { char, statusLight, desk: null, agent, task: null, status: 'idle', tasksDone: 0, leftArm: char.userData.leftArm, rightArm: char.userData.rightArm };
+  agents[a.id] = {
+    a, human, label,
+    status: 'idle',
+    activity: 'idle',
+    task: null,
+    tasksDone: 0,
+    pos: new THREE.Vector3(dx, 0, dz + 0.5),
+    targetPos: null,
+    walkProgress: 0,
+    walkFrom: null,
+    deskPos: new THREE.Vector3(dx, 0, dz + 0.5),
+    activityTimer: 0,
+    nextActivityTime: 3000 + Math.random() * 5000,
+  };
 });
 
-// ─── Mouse Interaction ───
-const raycaster = new THREE.Raycaster();
+// ─── Camera ───
+let camA = Math.PI/4, camR = 16, camH = 14, autoRot = true, dragging = false, lastM = {x:0,y:0};
+canvas.onmousedown = e => { dragging = true; lastM = {x:e.clientX,y:e.clientY}; };
+canvas.onmouseup = canvas.onmouseleave = () => dragging = false;
+canvas.onmousemove = e => { if(!dragging) return; camA -= (e.clientX-lastM.x)*0.005; camH = Math.max(5,Math.min(25,camH+(e.clientY-lastM.y)*0.05)); lastM = {x:e.clientX,y:e.clientY}; };
+canvas.onwheel = e => { camR = Math.max(8,Math.min(30,camR+e.deltaY*0.01)); };
+
+function updateCam() {
+  C.position.set(Math.cos(camA)*camR, camH, Math.sin(camA)*camR);
+  C.lookAt(0, 1, 0);
+}
+function resetCam() { camA = Math.PI/4; camR = 16; camH = 14; }
+function toggleRot() { autoRot = !autoRot; document.getElementById('bRot').classList.toggle('on', autoRot); }
+
+// ─── Click to select ───
+const ray = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
-let selectedAgent = null;
+let selected = null;
 
-canvas.addEventListener('click', (e) => {
-  mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-  mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-  raycaster.setFromCamera(mouse, camera);
-
-  const chars = Object.values(agentObjects).map(a => a.char);
-  const intersects = raycaster.intersectObjects(chars, true);
-
-  if (intersects.length > 0) {
-    let obj = intersects[0].object;
-    while (obj.parent && !obj.userData.agent) obj = obj.parent;
-    if (obj.userData.agent) {
-      selectedAgent = obj.userData.agent.id;
-      showInfo(selectedAgent);
+canvas.onclick = e => {
+  mouse.x = (e.clientX/innerWidth)*2-1;
+  mouse.y = -(e.clientY/innerHeight)*2+1;
+  ray.setFromCamera(mouse, C);
+  const chars = Object.values(agents).map(a => a.human);
+  const hits = ray.intersectObjects(chars, true);
+  if (hits.length) {
+    let obj = hits[0].object;
+    while (obj.parent && !obj.parent?.userData?.lArm) obj = obj.parent;
+    for (const [id, ag] of Object.entries(agents)) {
+      if (ag.human === obj || ag.human === obj.parent) { selected = id; showPanel(id); return; }
     }
   }
-});
+};
 
-function showInfo(id) {
-  const a = agentObjects[id];
-  if (!a) return;
-  document.getElementById('infoTitle').innerHTML = a.agent.icon + ' ' + a.agent.name;
-  document.getElementById('infoStatus').textContent = a.status.toUpperCase();
-  document.getElementById('infoStatus').style.color = a.status === 'active' ? '#00b894' : a.status === 'error' ? '#e17055' : '#636e72';
-  document.getElementById('infoTasks').textContent = a.tasksDone;
-  document.getElementById('infoRole').textContent = a.agent.role;
-  document.getElementById('infoTask').textContent = a.task || 'No active task';
-  document.getElementById('infoPanel').classList.add('show');
+function showPanel(id) {
+  const a = agents[id]; if(!a) return;
+  document.getElementById('pT').innerHTML = `${a.a.icon} ${a.a.name}`;
+  document.getElementById('pA').textContent = ACTIVITIES[a.activity]?.emoji + ' ' + ACTIVITIES[a.activity]?.label;
+  document.getElementById('pS').textContent = a.status.toUpperCase();
+  document.getElementById('pS').style.color = a.status==='active'?'#00b894':a.status==='error'?'#e17055':'#636e72';
+  document.getElementById('pTk').textContent = a.tasksDone;
+  document.getElementById('pR').textContent = a.a.role;
+  document.getElementById('pTs').textContent = a.task || 'No active task';
+  document.getElementById('pnl').classList.add('show');
 }
-
-// ─── Camera Controls (simple orbit) ───
-let camAngle = Math.PI / 4;
-let camRadius = 16;
-let camHeight = 14;
-let autoRotate = true;
-let isDragging = false;
-let lastMouse = { x: 0, y: 0 };
-
-canvas.addEventListener('mousedown', (e) => { isDragging = true; lastMouse = { x: e.clientX, y: e.clientY }; });
-canvas.addEventListener('mouseup', () => isDragging = false);
-canvas.addEventListener('mouseleave', () => isDragging = false);
-canvas.addEventListener('mousemove', (e) => {
-  if (!isDragging) return;
-  const dx = e.clientX - lastMouse.x;
-  const dy = e.clientY - lastMouse.y;
-  camAngle -= dx * 0.005;
-  camHeight = Math.max(5, Math.min(25, camHeight + dy * 0.05));
-  lastMouse = { x: e.clientX, y: e.clientY };
-});
-canvas.addEventListener('wheel', (e) => {
-  camRadius = Math.max(8, Math.min(30, camRadius + e.deltaY * 0.01));
-});
-
-function updateCamera() {
-  camera.position.x = Math.cos(camAngle) * camRadius;
-  camera.position.z = Math.sin(camAngle) * camRadius;
-  camera.position.y = camHeight;
-  camera.lookAt(0, 1, 0);
-}
-
-function resetCam() { camAngle = Math.PI / 4; camRadius = 16; camHeight = 14; }
-function toggleRotate() { autoRotate = !autoRotate; document.querySelectorAll('.ctrl-btn')[2].classList.toggle('active', autoRotate); }
 
 // ─── Simulation ───
-let simRunning = true;
-let simTimer = 0;
+let simOn = true, lastTick = 0;
+function toggleSim() { simOn = !simOn; const b = document.getElementById('bSim'); b.textContent = simOn?'⏸ Pause':'▶ Play'; b.classList.toggle('on', simOn); }
 
-function toggleSim() {
-  simRunning = !simRunning;
-  const btn = document.getElementById('btnSim');
-  btn.textContent = simRunning ? '⏸ Pause' : '▶ Play';
-  btn.classList.toggle('active', simRunning);
-}
+function pickRandom(arr) { return arr[Math.floor(Math.random()*arr.length)]; }
+function v3(x,y,z) { return new THREE.Vector3(x,y,z); }
 
-function simulateStep() {
-  if (!simRunning) return;
+function startActivity(id) {
+  const a = agents[id];
+  const actKeys = ['typing','thinking','coffee','whiteboard','stretching','discuss'];
+  const act = pickRandom(actKeys);
 
-  const agentIds = Object.keys(agentObjects);
-  const id = agentIds[Math.floor(Math.random() * agentIds.length)];
-  const a = agentObjects[id];
+  a.activity = act;
+  a.activityTimer = 0;
+  a.nextActivityTime = 4000 + Math.random() * 6000;
 
-  if (a.status === 'idle') {
-    // Start working
-    a.status = 'active';
-    a.task = TASKS[Math.floor(Math.random() * TASKS.length)];
-    a.statusLight.material.color.setHex(0x00b894);
+  const parts = a.human.userData;
 
-    // Animate typing
-    a.typingAnim = true;
-    a.typingStart = Date.now();
+  switch(act) {
+    case 'typing':
+      a.status = 'active';
+      a.task = pickRandom(TASKS);
+      a.targetPos = a.deskPos.clone();
+      a.targetPos.z += 0.5;
+      a.activityTimer = 0;
+      a.nextActivityTime = 3000 + Math.random() * 4000;
+      parts.light.material.color.setHex(0x00b894);
+      break;
 
-    // Complete after 3-6 seconds
-    a.completeTimeout = setTimeout(() => {
-      if (agentObjects[id].status === 'active') {
-        agentObjects[id].status = 'idle';
-        agentObjects[id].tasksDone++;
-        agentObjects[id].task = null;
-        agentObjects[id].statusLight.material.color.setHex(0x636e72);
-        agentObjects[id].typingAnim = false;
-        updateHUD();
-      }
-    }, 3000 + Math.random() * 3000);
+    case 'walking':
+      a.status = 'active';
+      a.task = null;
+      const walkTarget = pickRandom(LOCATIONS.walkway);
+      a.targetPos = v3(walkTarget[0], 0, walkTarget[1]);
+      a.activityTimer = 0;
+      a.nextActivityTime = 3000 + Math.random() * 3000;
+      parts.light.material.color.setHex(0x6c5ce7);
+      break;
 
-  } else if (a.status === 'active' && Math.random() > 0.8) {
-    // Error!
-    a.status = 'error';
-    a.statusLight.material.color.setHex(0xe17055);
-    a.typingAnim = false;
-    setTimeout(() => {
-      agentObjects[id].status = 'idle';
-      agentObjects[id].task = null;
-      agentObjects[id].statusLight.material.color.setHex(0x636e72);
-      updateHUD();
-    }, 2000);
+    case 'thinking':
+      a.status = 'active';
+      a.task = pickRandom(TASKS);
+      a.targetPos = a.deskPos.clone();
+      a.targetPos.z += 0.5;
+      parts.light.material.color.setHex(0xfdcb6e);
+      break;
+
+    case 'coffee':
+      a.status = 'active';
+      a.task = null;
+      const coffeePos = pickRandom(LOCATIONS.coffee);
+      a.targetPos = v3(coffeePos[0] - 0.8, 0, coffeePos[1]);
+      parts.light.material.color.setHex(0xe17055);
+      break;
+
+    case 'whiteboard':
+      a.status = 'active';
+      a.task = pickRandom(TASKS);
+      const wbPos = pickRandom(LOCATIONS.whiteboard);
+      a.targetPos = v3(wbPos[0] + 1, 0, wbPos[1]);
+      parts.light.material.color.setHex(0x74b9ff);
+      break;
+
+    case 'stretching':
+      a.status = 'active';
+      a.task = null;
+      a.targetPos = a.deskPos.clone();
+      a.targetPos.z += 1.5;
+      parts.light.material.color.setHex(0xfd79a8);
+      break;
+
+    case 'discuss':
+      a.status = 'active';
+      a.task = null;
+      const meetPos = pickRandom(LOCATIONS.meeting);
+      a.targetPos = v3(meetPos[0], 0, meetPos[1]);
+      parts.light.material.color.setHex(0x55efc4);
+      break;
   }
-
-  updateHUD();
 }
 
-function updateHUD() {
-  const all = Object.values(agentObjects);
-  document.getElementById('sActive').textContent = all.filter(a => a.status === 'active').length;
-  document.getElementById('sIdle').textContent = all.filter(a => a.status === 'idle').length;
-  document.getElementById('sError').textContent = all.filter(a => a.status === 'error').length;
-  document.getElementById('sTasks').textContent = all.reduce((s, a) => s + a.tasksDone, 0);
-
-  // Update info panel if open
-  if (selectedAgent) showInfo(selectedAgent);
+function completeActivity(id) {
+  const a = agents[id];
+  if (a.task) a.tasksDone++;
+  a.activity = 'idle';
+  a.status = 'idle';
+  a.task = null;
+  a.targetPos = a.deskPos.clone();
+  a.human.userData.light.material.color.setHex(0x636e72);
+  a.nextActivityTime = 2000 + Math.random() * 4000;
 }
 
 // ─── Animation Loop ───
@@ -469,69 +519,183 @@ const clock = new THREE.Clock();
 
 function animate() {
   requestAnimationFrame(animate);
+  const dt = clock.getDelta();
   const t = clock.getElapsedTime();
 
-  // Auto rotate
-  if (autoRotate && !isDragging) camAngle += 0.002;
-  updateCamera();
+  if (autoRot && !dragging) camA += 0.0015;
+  updateCam();
 
-  // Simulate
-  simTimer += clock.getDelta();
-  if (simTimer > 2) { simTimer = 0; simulateStep(); }
+  if (!simOn) { R.render(S, C); return; }
 
-  // Animate characters
-  for (const id of Object.keys(agentObjects)) {
-    const a = agentObjects[id];
-    if (!a.char) continue;
+  // Update each agent
+  for (const [id, a] of Object.entries(agents)) {
+    a.activityTimer += dt * 1000;
 
-    // Typing animation (arms move)
-    if (a.typingAnim) {
-      const speed = 8;
-      a.leftArm.rotation.x = Math.sin(t * speed) * 0.3;
-      a.rightArm.rotation.x = Math.sin(t * speed + 1) * 0.3;
-      a.leftArm.rotation.z = 0.15 + Math.sin(t * speed * 0.5) * 0.1;
-      a.rightArm.rotation.z = -0.15 - Math.sin(t * speed * 0.5 + 0.5) * 0.1;
-      // Slight head bob
-      a.char.userData.head.rotation.x = Math.sin(t * 2) * 0.05;
-      a.char.userData.head.rotation.y = Math.sin(t * 0.5) * 0.1;
-    } else {
-      // Idle breathing animation
-      a.leftArm.rotation.x = Math.sin(t * 0.5) * 0.05;
-      a.rightArm.rotation.x = Math.sin(t * 0.5 + 1) * 0.05;
-      a.leftArm.rotation.z = 0.15;
-      a.rightArm.rotation.z = -0.15;
-      a.char.userData.head.rotation.x = Math.sin(t * 0.3) * 0.02;
+    // Start new activity if idle and timer expired
+    if (a.activity === 'idle' && a.activityTimer > a.nextActivityTime) {
+      startActivity(id);
     }
 
-    // Status light pulse
-    if (a.status === 'active') {
-      a.statusLight.scale.setScalar(1 + Math.sin(t * 4) * 0.3);
-    } else if (a.status === 'error') {
-      a.statusLight.scale.setScalar(1 + Math.sin(t * 8) * 0.5);
-    } else {
-      a.statusLight.scale.setScalar(1);
+    // Complete activity if timer expired
+    if (a.activity !== 'idle' && a.activityTimer > a.nextActivityTime && !a.targetPos) {
+      completeActivity(id);
     }
+
+    // Walk to target
+    if (a.targetPos) {
+      const dir = a.targetPos.clone().sub(a.human.position);
+      dir.y = 0;
+      const dist = dir.length();
+
+      if (dist > 0.15) {
+        dir.normalize();
+        const speed = 2.5 * dt;
+        a.human.position.add(dir.multiplyScalar(Math.min(speed, dist)));
+
+        // Face walking direction
+        a.human.rotation.y = Math.atan2(dir.x, dir.z);
+
+        // Walking animation
+        const parts = a.human.userData;
+        const walkCycle = Math.sin(t * 10);
+        parts.lLeg.rotation.x = walkCycle * 0.5;
+        parts.rLeg.rotation.x = -walkCycle * 0.5;
+        parts.lArm.rotation.x = -walkCycle * 0.3;
+        parts.rArm.rotation.x = walkCycle * 0.3;
+        parts.torso.rotation.y = Math.sin(t * 5) * 0.05;
+        // Bob up/down
+        a.human.position.y = Math.abs(Math.sin(t * 10)) * 0.05;
+
+        a.activity = 'walking';
+        a.human.userData.light.material.color.setHex(0x6c5ce7);
+      } else {
+        // Arrived
+        a.human.position.copy(a.targetPos);
+        a.human.position.y = 0;
+        a.targetPos = null;
+        a.human.rotation.y = Math.PI; // face desk
+        a.activityTimer = 0;
+
+        // If heading back to desk, go idle
+        if (a.activity === 'walking') {
+          a.activity = 'idle';
+          a.status = 'idle';
+          a.human.userData.light.material.color.setHex(0x636e72);
+        }
+      }
+    } else {
+      // Activity animations (not walking)
+      const parts = a.human.userData;
+
+      switch(a.activity) {
+        case 'typing':
+          parts.lArm.rotation.x = Math.sin(t * 8) * 0.3;
+          parts.rArm.rotation.x = Math.sin(t * 8 + 1) * 0.3;
+          parts.lArm.rotation.z = 0.15 + Math.sin(t * 4) * 0.1;
+          parts.rArm.rotation.z = -0.15 - Math.sin(t * 4 + 0.5) * 0.1;
+          parts.lLeg.rotation.x = 0;
+          parts.rLeg.rotation.x = 0;
+          parts.head.rotation.x = Math.sin(t * 2) * 0.03;
+          parts.head.rotation.y = Math.sin(t * 0.5) * 0.08;
+          a.human.position.y = 0;
+          break;
+
+        case 'thinking':
+          parts.lArm.rotation.x = -0.3;
+          parts.lArm.rotation.z = 0.8;
+          parts.rArm.rotation.x = -0.5;
+          parts.rArm.rotation.z = -0.3;
+          parts.head.rotation.x = Math.sin(t * 0.8) * 0.1;
+          parts.head.rotation.z = Math.sin(t * 0.6) * 0.08;
+          parts.lLeg.rotation.x = 0;
+          parts.rLeg.rotation.x = 0;
+          a.human.position.y = 0;
+          break;
+
+        case 'coffee':
+          parts.rArm.rotation.x = -1.2;
+          parts.rArm.rotation.z = -0.3;
+          parts.lArm.rotation.x = 0;
+          parts.lArm.rotation.z = 0.15;
+          parts.head.rotation.x = Math.sin(t * 0.5) * 0.05;
+          parts.lLeg.rotation.x = 0;
+          parts.rLeg.rotation.x = 0;
+          a.human.position.y = 0;
+          break;
+
+        case 'whiteboard':
+          parts.rArm.rotation.x = -1.5 + Math.sin(t * 2) * 0.5;
+          parts.rArm.rotation.z = -0.5 + Math.cos(t * 3) * 0.3;
+          parts.lArm.rotation.x = 0;
+          parts.lArm.rotation.z = 0.2;
+          parts.head.rotation.y = Math.sin(t * 1.5) * 0.15;
+          parts.lLeg.rotation.x = 0;
+          parts.rLeg.rotation.x = 0;
+          a.human.position.y = 0;
+          break;
+
+        case 'stretching':
+          parts.lArm.rotation.x = -2.5;
+          parts.lArm.rotation.z = 0.3;
+          parts.rArm.rotation.x = -2.5;
+          parts.rArm.rotation.z = -0.3;
+          parts.head.rotation.x = Math.sin(t * 0.3) * 0.1;
+          parts.torso.rotation.x = Math.sin(t * 0.5) * 0.05;
+          parts.lLeg.rotation.x = 0;
+          parts.rLeg.rotation.x = 0;
+          a.human.position.y = 0;
+          break;
+
+        case 'discuss':
+          parts.lArm.rotation.x = Math.sin(t * 1.5) * 0.4;
+          parts.rArm.rotation.x = Math.sin(t * 1.8 + 1) * 0.4;
+          parts.head.rotation.y = Math.sin(t * 0.8) * 0.2;
+          parts.head.rotation.x = Math.sin(t * 1.2) * 0.1;
+          parts.lLeg.rotation.x = 0;
+          parts.rLeg.rotation.x = 0;
+          a.human.position.y = 0;
+          break;
+
+        default: // idle
+          parts.lArm.rotation.x = Math.sin(t * 0.5) * 0.05;
+          parts.rArm.rotation.x = Math.sin(t * 0.5 + 1) * 0.05;
+          parts.lArm.rotation.z = 0.15;
+          parts.rArm.rotation.z = -0.15;
+          parts.head.rotation.x = Math.sin(t * 0.3) * 0.02;
+          parts.lLeg.rotation.x = 0;
+          parts.rLeg.rotation.x = 0;
+          a.human.position.y = 0;
+          break;
+      }
+
+      // Complete if not heading anywhere and timer expired
+      if (a.activity !== 'idle' && a.activityTimer > a.nextActivityTime) {
+        completeActivity(id);
+      }
+    }
+
+    // Light pulse
+    if (a.status === 'active') parts.light.scale.setScalar(1 + Math.sin(t * 4) * 0.3);
+    else parts.light.scale.setScalar(1);
   }
 
-  // Purple light animation
-  purpleLight.intensity = 0.4 + Math.sin(t * 0.5) * 0.1;
-  greenLight.intensity = 0.3 + Math.sin(t * 0.7) * 0.1;
+  // Update HUD
+  const all = Object.values(agents);
+  document.getElementById('sW').textContent = all.filter(a => a.activity === 'typing').length;
+  document.getElementById('sWk').textContent = all.filter(a => a.activity === 'walking').length;
+  document.getElementById('sT').textContent = all.filter(a => a.activity === 'thinking' || a.activity === 'whiteboard').length;
+  document.getElementById('sTk').textContent = all.reduce((s, a) => s + a.tasksDone, 0);
 
-  renderer.render(scene, camera);
+  if (selected) showPanel(selected);
+
+  R.render(S, C);
 }
 
 // ─── Resize ───
-window.addEventListener('resize', () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-});
+addEventListener('resize', () => { C.aspect = innerWidth/innerHeight; C.updateProjectionMatrix(); R.setSize(innerWidth, innerHeight); });
 
 // ─── Start ───
-setTimeout(() => {
-  document.getElementById('loading').classList.add('hidden');
-  animate();
-}, 1500);
+setTimeout(() => { document.getElementById('ld').classList.add('off'); animate(); }, 1200);
 </script>
 </body>
 </html>
