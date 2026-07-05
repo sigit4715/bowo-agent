@@ -352,23 +352,23 @@ function makeHuman(color){
   const torso=new THREE.Mesh(new THREE.BoxGeometry(.32,.4,.18),body);torso.position.y=1.08;torso.castShadow=true;g.add(torso);
 
   const lArm=new THREE.Group();
-  lArm.add(Object.assign(new THREE.Mesh(new THREE.BoxGeometry(.09,.32,.09),body),{position:new THREE.Vector3(0,-.16,0)}));
-  lArm.add(Object.assign(new THREE.Mesh(new THREE.SphereGeometry(.04,6,6),skin),{position:new THREE.Vector3(0,-.35,0)}));
+  const _la1=new THREE.Mesh(new THREE.BoxGeometry(.09,.32,.09),body);_la1.position.set(0,-.16,0);lArm.add(_la1);
+  const _la2=new THREE.Mesh(new THREE.SphereGeometry(.04,6,6),skin);_la2.position.set(0,-.35,0);lArm.add(_la2);
   lArm.position.set(-.22,1.2,0);g.add(lArm);
 
   const rArm=new THREE.Group();
-  rArm.add(Object.assign(new THREE.Mesh(new THREE.BoxGeometry(.09,.32,.09),body),{position:new THREE.Vector3(0,-.16,0)}));
-  rArm.add(Object.assign(new THREE.Mesh(new THREE.SphereGeometry(.04,6,6),skin),{position:new THREE.Vector3(0,-.35,0)}));
+  const _ra1=new THREE.Mesh(new THREE.BoxGeometry(.09,.32,.09),body);_ra1.position.set(0,-.16,0);rArm.add(_ra1);
+  const _ra2=new THREE.Mesh(new THREE.SphereGeometry(.04,6,6),skin);_ra2.position.set(0,-.35,0);rArm.add(_ra2);
   rArm.position.set(.22,1.2,0);g.add(rArm);
 
   const lLeg=new THREE.Group();
-  lLeg.add(Object.assign(new THREE.Mesh(new THREE.BoxGeometry(.1,.35,.1),dark),{position:new THREE.Vector3(0,-.175,0)}));
-  lLeg.add(Object.assign(new THREE.Mesh(new THREE.BoxGeometry(.11,.06,.16),mat(0x1a1a2e)),{position:new THREE.Vector3(0,-.38,.02)}));
+  const _ll1=new THREE.Mesh(new THREE.BoxGeometry(.1,.35,.1),dark);_ll1.position.set(0,-.175,0);lLeg.add(_ll1);
+  const _ll2=new THREE.Mesh(new THREE.BoxGeometry(.11,.06,.16),mat(0x1a1a2e));_ll2.position.set(0,-.38,.02);lLeg.add(_ll2);
   lLeg.position.set(-.08,.58,0);g.add(lLeg);
 
   const rLeg=new THREE.Group();
-  rLeg.add(Object.assign(new THREE.Mesh(new THREE.BoxGeometry(.1,.35,.1),dark),{position:new THREE.Vector3(0,-.175,0)}));
-  rLeg.add(Object.assign(new THREE.Mesh(new THREE.BoxGeometry(.11,.06,.16),mat(0x1a1a2e)),{position:new THREE.Vector3(0,-.38,.02)}));
+  const _rl1=new THREE.Mesh(new THREE.BoxGeometry(.1,.35,.1),dark);_rl1.position.set(0,-.175,0);rLeg.add(_rl1);
+  const _rl2=new THREE.Mesh(new THREE.BoxGeometry(.11,.06,.16),mat(0x1a1a2e));_rl2.position.set(0,-.38,.02);rLeg.add(_rl2);
   rLeg.position.set(.08,.58,0);g.add(rLeg);
 
   const light=new THREE.Mesh(new THREE.SphereGeometry(.04,6,6),new THREE.MeshBasicMaterial({color:0x636e72}));
