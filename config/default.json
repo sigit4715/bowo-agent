@@ -1,0 +1,95 @@
+{
+  "name": "BOWO",
+  "version": "1.0.0",
+  "description": "Backend Orchestrator for Workflow Optimization",
+  "author": "Bowo",
+
+  "llm": {
+    "provider": "openai",
+    "model": "gpt-4o-mini",
+    "api_key_env": "OPENAI_API_KEY",
+    "temperature": 0.7,
+    "max_tokens": 4096
+  },
+
+  "orchestrator": {
+    "max_retries": 3,
+    "timeout_seconds": 300,
+    "parallel_agents": true,
+    "log_level": "INFO"
+  },
+
+  "agents": {
+    "planner": {
+      "enabled": true,
+      "max_subtasks": 10,
+      "priority": 1
+    },
+    "architect": {
+      "enabled": true,
+      "generate_diagrams": true,
+      "priority": 2
+    },
+    "backend": {
+      "enabled": true,
+      "languages": ["python", "nodejs", "go"],
+      "priority": 3
+    },
+    "frontend": {
+      "enabled": true,
+      "frameworks": ["react", "vue", "svelte"],
+      "priority": 3
+    },
+    "qa": {
+      "enabled": true,
+      "auto_test": true,
+      "coverage_threshold": 80,
+      "priority": 4
+    },
+    "debug": {
+      "enabled": true,
+      "auto_fix": false,
+      "priority": 5
+    },
+    "security": {
+      "enabled": true,
+      "scan_dependencies": true,
+      "priority": 6
+    },
+    "devops": {
+      "enabled": true,
+      "targets": ["docker", "k8s", "cloud"],
+      "priority": 7
+    },
+    "reporter": {
+      "enabled": true,
+      "output_format": "markdown",
+      "priority": 8
+    }
+  },
+
+  "workflow": {
+    "default_pipeline": [
+      "planner",
+      "architect",
+      "backend",
+      "frontend",
+      "qa",
+      "reporter"
+    ],
+    "enable_debug_loop": true,
+    "enable_security_scan": true
+  },
+
+  "memory": {
+    "backend": "file",
+    "directory": "output/memory",
+    "max_entries": 1000
+  },
+
+  "output": {
+    "directory": "output",
+    "save_logs": true,
+    "save_artifacts": true
+  }
+}

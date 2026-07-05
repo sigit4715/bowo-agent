@@ -1,0 +1,15 @@
+{
+  "name": "data-analyst",
+  "version": "1.0.0",
+  "description": "Custom data-analyst agent plugin",
+  "author": "Bowo",
+  "agent": {
+    "name": "data-analyst",
+    "role": "data-analyst Specialist",
+    "emoji": "🔧",
+    "priority": 5,
+    "capabilities": [
+      "data-analyst"
+    ]
+  }
+}

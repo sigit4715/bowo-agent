@@ -1,0 +1,136 @@
+#!/bin/bash
+# 🤖 BOWO Runner — Quick BOWO execution from anywhere
+#
+# Usage:
+#   bowo "Build a REST API"
+#   bowo --agents planner,architect,backend "Design system"
+#   bowo --model deepseek-chat "Fix login bug"
+#   bowo --web  (start dashboard)
+#   bowo --cli  (interactive mode)
+
+BOWO_DIR="/opt/data/bowo-agent"
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
+
+# Default values
+TASK=""
+AGENTS=""
+MODEL=""
+PROVIDER=""
+MODE="run"
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --agents) AGENTS="$2"; shift 2 ;;
+    --model) MODEL="$2"; shift 2 ;;
+    --provider) PROVIDER="$2"; shift 2 ;;
+    --web) MODE="web"; shift ;;
+    --cli) MODE="cli"; shift ;;
+    --demo) MODE="demo"; shift ;;
+    --status) MODE="status"; shift ;;
+    --help|-h)
+      echo "🤖 BOWO — Backend Orchestrator for Workflow Optimization"
+      echo ""
+      echo "Usage:"
+      echo "  bowo \"Build a REST API\"              # Run task"
+      echo "  bowo --agents planner,backend \"...\"   # Specific agents"
+      echo "  bowo --model deepseek-chat \"...\"      # Specific model"
+      echo "  bowo --web                            # Start dashboard"
+      echo "  bowo --cli                            # Interactive mode"
+      echo "  bowo --demo                           # Run demo"
+      echo "  bowo --status                         # System status"
+      echo ""
+      echo "Providers:"
+      echo "  OPENAI_API_KEY, OPENROUTER_API_KEY, DEEPSEEK_API_KEY,"
+      echo "  GROQ_API_KEY, ANTHROPIC_API_KEY, etc."
+      exit 0
+      ;;
+    *) TASK="$1"; shift ;;
+  esac
+done
+
+cd "$BOWO_DIR" || exit 1
+
+case $MODE in
+  run)
+    if [[ -z "$TASK" ]]; then
+      echo -e "${RED}❌ No task specified${NC}"
+      echo "Usage: bowo \"Build a REST API\""
+      exit 1
+    fi
+
+    echo -e "${BLUE}🤖 BOWO — Executing task...${NC}"
+    echo -e "${YELLOW}📋 Task: $TASK${NC}"
+    echo ""
+
+    ARGS="--task \"$TASK\""
+    [[ -n "$AGENTS" ]] && ARGS="$ARGS --agents $AGENTS"
+    [[ -n "$MODEL" ]] && ARGS="$ARGS --model $MODEL"
+    [[ -n "$PROVIDER" ]] && ARGS="$ARGS --provider $PROVIDER"
+
+    eval npx tsx src/index.ts $ARGS
+    ;;
+
+  web)
+    echo -e "${BLUE}🌐 BOWO Dashboard starting...${NC}"
+    npx tsx src/server.ts
+    ;;
+
+  cli)
+    echo -e "${BLUE}💬 BOWO Interactive Chat...${NC}"
+    npx tsx src/cli.ts
+    ;;
+
+  demo)
+    echo -e "${BLUE}🎮 BOWO Demo...${NC}"
+    npx tsx src/demo.ts
+    ;;
+
+  status)
+    echo -e "${BLUE}📊 BOWO System Status${NC}"
+    echo ""
+
+    # Check Node.js
+    if command -v node &> /dev/null; then
+      echo -e "  ${GREEN}✅ Node.js: $(node --version)${NC}"
+    else
+      echo -e "  ${RED}❌ Node.js not found${NC}"
+    fi
+
+    # Check dependencies
+    if [[ -d "node_modules" ]]; then
+      echo -e "  ${GREEN}✅ Dependencies installed${NC}"
+    else
+      echo -e "  ${RED}❌ Dependencies not installed (run: npm install)${NC}"
+    fi
+
+    # Check Hermes
+    if command -v hermes &> /dev/null; then
+      echo -e "  ${GREEN}✅ Hermes: $(hermes --version 2>/dev/null | head -1)${NC}"
+    else
+      echo -e "  ${YELLOW}⚠️  Hermes not in PATH${NC}"
+    fi
+
+    # Check LLM providers
+    echo ""
+    echo "  LLM Providers:"
+    [[ -n "$OPENAI_API_KEY" ]] && echo -e "    ${GREEN}✅ OpenAI${NC}"
+    [[ -n "$OPENROUTER_API_KEY" ]] && echo -e "    ${GREEN}✅ OpenRouter${NC}"
+    [[ -n "$DEEPSEEK_API_KEY" ]] && echo -e "    ${GREEN}✅ DeepSeek${NC}"
+    [[ -n "$GROQ_API_KEY" ]] && echo -e "    ${GREEN}✅ Groq${NC}"
+    [[ -n "$ANTHROPIC_API_KEY" ]] && echo -e "    ${GREEN}✅ Anthropic${NC}"
+    [[ -n "$XAI_API_KEY" ]] && echo -e "    ${GREEN}✅ xAI${NC}"
+    [[ -n "$GOOGLE_API_KEY" ]] && echo -e "    ${GREEN}✅ Google${NC}"
+
+    # Check proxy
+    if curl -s http://localhost:3456/v1/models > /dev/null 2>&1; then
+      echo -e "    ${GREEN}✅ Hermes Proxy${NC}"
+    fi
+    ;;
+esac
