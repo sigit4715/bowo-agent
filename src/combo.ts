@@ -425,47 +425,77 @@ interface CuratedModel {
 }
 
 export const CURATIONS: Record<string, CuratedModel[]> = {
+  // ─── QwenCloud (via Router9) ──────────────────────
   qwencloud: [
-    { provider: 'qwencloud', model: 'qwen3-235b-a22b', baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1', priority: 1, costPer1MInput: 0.20, costPer1MOutput: 0.60 },
-    { provider: 'qwencloud', model: 'qwen3-110b', baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1', priority: 2, costPer1MInput: 0.16, costPer1MOutput: 0.48 },
-    { provider: 'qwencloud', model: 'qwen3-30b-a3b', baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1', priority: 3, costPer1MInput: 0.06, costPer1MOutput: 0.18 },
-    { provider: 'qwencloud', model: 'qwen3-14b', baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1', priority: 4, costPer1MInput: 0.04, costPer1MOutput: 0.12 },
-    { provider: 'qwencloud', model: 'qwen3-8b', baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1', priority: 5, costPer1MInput: 0.02, costPer1MOutput: 0.06 },
-    { provider: 'qwencloud', model: 'qwen3-4b', baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1', priority: 6, costPer1MInput: 0.01, costPer1MOutput: 0.03 },
-    { provider: 'qwencloud', model: 'qwen2.5-72b-instruct', baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1', priority: 7, costPer1MInput: 0.12, costPer1MOutput: 0.36 },
-    { provider: 'qwencloud', model: 'qwen2.5-32b-instruct', baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1', priority: 8, costPer1MInput: 0.06, costPer1MOutput: 0.18 },
-    { provider: 'qwencloud', model: 'qwen-coder-plus', baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1', priority: 9, costPer1MInput: 0.08, costPer1MOutput: 0.24 },
-    { provider: 'qwencloud', model: 'qwen-max', baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1', priority: 10, costPer1MInput: 0.16, costPer1MOutput: 0.48 },
+    { provider: 'qwencloud', model: 'qwen3.7-max', baseUrl: 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1', priority: 1, costPer1MInput: 0.20, costPer1MOutput: 0.60 },
+    { provider: 'qwencloud', model: 'qwen3.7-plus', baseUrl: 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1', priority: 2, costPer1MInput: 0.16, costPer1MOutput: 0.48 },
+    { provider: 'qwencloud', model: 'qwen3-coder-next', baseUrl: 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1', priority: 3, costPer1MInput: 0.08, costPer1MOutput: 0.24 },
+    { provider: 'qwencloud', model: 'qwen3-coder-plus', baseUrl: 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1', priority: 4, costPer1MInput: 0.06, costPer1MOutput: 0.18 },
+    { provider: 'qwencloud', model: 'kimi-k2.7-code', baseUrl: 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1', priority: 5, costPer1MInput: 0.08, costPer1MOutput: 0.24 },
+    { provider: 'qwencloud', model: 'deepseek-v4-pro', baseUrl: 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1', priority: 6, costPer1MInput: 0.14, costPer1MOutput: 0.28 },
+    { provider: 'qwencloud', model: 'deepseek-v4-flash', baseUrl: 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1', priority: 7, costPer1MInput: 0.02, costPer1MOutput: 0.06 },
+    { provider: 'qwencloud', model: 'qwq-plus', baseUrl: 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1', priority: 8, costPer1MInput: 0.06, costPer1MOutput: 0.18 },
+    { provider: 'qwencloud', model: 'qwen3.6-plus', baseUrl: 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1', priority: 9, costPer1MInput: 0.12, costPer1MOutput: 0.36 },
+    { provider: 'qwencloud', model: 'glm-5.2', baseUrl: 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1', priority: 10, costPer1MInput: 0.10, costPer1MOutput: 0.30 },
   ],
 
-  deepseek: [
-    { provider: 'deepseek', model: 'deepseek-chat', baseUrl: 'https://api.deepseek.com/v1', priority: 1, costPer1MInput: 0.14, costPer1MOutput: 0.28 },
-    { provider: 'deepseek', model: 'deepseek-reasoner', baseUrl: 'https://api.deepseek.com/v1', priority: 2, costPer1MInput: 0.55, costPer1MOutput: 2.19 },
-    { provider: 'deepseek', model: 'deepseek-coder', baseUrl: 'https://api.deepseek.com/v1', priority: 3, costPer1MInput: 0.14, costPer1MOutput: 0.28 },
-    { provider: 'deepseek', model: 'deepseek-v3-0324', baseUrl: 'https://api.deepseek.com/v1', priority: 4, costPer1MInput: 0.14, costPer1MOutput: 0.28 },
-    { provider: 'deepseek', model: 'deepseek-r1', baseUrl: 'https://api.deepseek.com/v1', priority: 5, costPer1MInput: 0.55, costPer1MOutput: 2.19 },
-  ],
-
-  openai: [
-    { provider: 'openai', model: 'gpt-4o', baseUrl: 'https://api.openai.com/v1', priority: 1, costPer1MInput: 2.50, costPer1MOutput: 10.00 },
-    { provider: 'openai', model: 'gpt-4o-mini', baseUrl: 'https://api.openai.com/v1', priority: 2, costPer1MInput: 0.15, costPer1MOutput: 0.60 },
-    { provider: 'openai', model: 'o3-mini', baseUrl: 'https://api.openai.com/v1', priority: 3, costPer1MInput: 1.10, costPer1MOutput: 4.40 },
-    { provider: 'openai', model: 'gpt-4.1', baseUrl: 'https://api.openai.com/v1', priority: 4, costPer1MInput: 2.00, costPer1MOutput: 8.00 },
-    { provider: 'openai', model: 'gpt-4.1-mini', baseUrl: 'https://api.openai.com/v1', priority: 5, costPer1MInput: 0.40, costPer1MOutput: 1.60 },
-  ],
-
-  anthropic: [
-    { provider: 'anthropic', model: 'claude-sonnet-4-20250514', baseUrl: 'https://api.anthropic.com/v1', priority: 1, costPer1MInput: 3.00, costPer1MOutput: 15.00 },
-    { provider: 'anthropic', model: 'claude-3-5-haiku-20241022', baseUrl: 'https://api.anthropic.com/v1', priority: 2, costPer1MInput: 0.80, costPer1MOutput: 4.00 },
-    { provider: 'anthropic', model: 'claude-3-5-sonnet-20241022', baseUrl: 'https://api.anthropic.com/v1', priority: 3, costPer1MInput: 3.00, costPer1MOutput: 15.00 },
-    { provider: 'anthropic', model: 'claude-3-opus-20240229', baseUrl: 'https://api.anthropic.com/v1', priority: 4, costPer1MInput: 15.00, costPer1MOutput: 75.00 },
-    { provider: 'anthropic', model: 'claude-3-haiku-20240307', baseUrl: 'https://api.anthropic.com/v1', priority: 5, costPer1MInput: 0.25, costPer1MOutput: 1.25 },
-  ],
-
+  // ─── MiMo (via Router9) ──────────────────────────
   mimo: [
-    { provider: 'mimo', model: 'mimo-7b', baseUrl: 'https://api.mimo.ai/v1', priority: 1, costPer1MInput: 0.00, costPer1MOutput: 0.00 },
-    { provider: 'mimo', model: 'mimo-13b', baseUrl: 'https://api.mimo.ai/v1', priority: 2, costPer1MInput: 0.00, costPer1MOutput: 0.00 },
-    { provider: 'mimo', model: 'mimo-33b', baseUrl: 'https://api.mimo.ai/v1', priority: 3, costPer1MInput: 0.00, costPer1MOutput: 0.00 },
+    { provider: 'mimo', model: 'mimo-v2.5-pro', baseUrl: 'https://api.mimo.xiaomi.com/v1', priority: 1, costPer1MInput: 0.00, costPer1MOutput: 0.00 },
+    { provider: 'mimo', model: 'mimo-v2.5', baseUrl: 'https://api.mimo.xiaomi.com/v1', priority: 2, costPer1MInput: 0.00, costPer1MOutput: 0.00 },
+    { provider: 'mimo', model: 'mimo-v2-flash', baseUrl: 'https://api.mimo.xiaomi.com/v1', priority: 3, costPer1MInput: 0.00, costPer1MOutput: 0.00 },
+    { provider: 'mimo', model: 'mimo-v2-omni', baseUrl: 'https://api.mimo.xiaomi.com/v1', priority: 4, costPer1MInput: 0.00, costPer1MOutput: 0.00 },
+  ],
+
+  // ─── CX / GPT (via Router9) ──────────────────────
+  cx: [
+    { provider: 'cx', model: 'gpt-5.5', baseUrl: 'https://router9.aleca.my.id/v1', priority: 1, costPer1MInput: 2.50, costPer1MOutput: 10.00 },
+    { provider: 'cx', model: 'gpt-5.4', baseUrl: 'https://router9.aleca.my.id/v1', priority: 2, costPer1MInput: 2.00, costPer1MOutput: 8.00 },
+    { provider: 'cx', model: 'gpt-5.4-mini', baseUrl: 'https://router9.aleca.my.id/v1', priority: 3, costPer1MInput: 0.15, costPer1MOutput: 0.60 },
+    { provider: 'cx', model: 'gpt-5.3-codex-xhigh', baseUrl: 'https://router9.aleca.my.id/v1', priority: 4, costPer1MInput: 1.50, costPer1MOutput: 6.00 },
+    { provider: 'cx', model: 'gpt-5.5-review', baseUrl: 'https://router9.aleca.my.id/v1', priority: 5, costPer1MInput: 2.50, costPer1MOutput: 10.00 },
+  ],
+
+  // ─── AgentRouter / Claude (via Router9) ───────────
+  agentrouter: [
+    { provider: 'agentrouter', model: 'claude-opus-4-8', baseUrl: 'https://agentrouter.org/v1', priority: 1, costPer1MInput: 15.00, costPer1MOutput: 75.00 },
+    { provider: 'agentrouter', model: 'claude-opus-4-7', baseUrl: 'https://agentrouter.org/v1', priority: 2, costPer1MInput: 15.00, costPer1MOutput: 75.00 },
+    { provider: 'agentrouter', model: 'claude-opus-4-6', baseUrl: 'https://agentrouter.org/v1', priority: 3, costPer1MInput: 15.00, costPer1MOutput: 75.00 },
+    { provider: 'agentrouter', model: 'glm-5.2', baseUrl: 'https://agentrouter.org/v1', priority: 4, costPer1MInput: 0.10, costPer1MOutput: 0.30 },
+  ],
+
+  // ─── DeepSeek (Direct API) ────────────────────────
+  deepseek: [
+    { provider: 'deepseek', model: 'deepseek-v4-pro', baseUrl: 'https://api.deepseek.com/v1', priority: 1, costPer1MInput: 0.14, costPer1MOutput: 0.28 },
+    { provider: 'deepseek', model: 'deepseek-v4-flash', baseUrl: 'https://api.deepseek.com/v1', priority: 2, costPer1MInput: 0.02, costPer1MOutput: 0.06 },
+    { provider: 'deepseek', model: 'deepseek-chat', baseUrl: 'https://api.deepseek.com/v1', priority: 3, costPer1MInput: 0.14, costPer1MOutput: 0.28 },
+    { provider: 'deepseek', model: 'deepseek-reasoner', baseUrl: 'https://api.deepseek.com/v1', priority: 4, costPer1MInput: 0.55, costPer1MOutput: 2.19 },
+  ],
+
+  // ─── OpenAI (Direct API) ──────────────────────────
+  openai: [
+    { provider: 'openai', model: 'gpt-5.5', baseUrl: 'https://api.openai.com/v1', priority: 1, costPer1MInput: 2.50, costPer1MOutput: 10.00 },
+    { provider: 'openai', model: 'gpt-5.4', baseUrl: 'https://api.openai.com/v1', priority: 2, costPer1MInput: 2.00, costPer1MOutput: 8.00 },
+    { provider: 'openai', model: 'gpt-5.4-mini', baseUrl: 'https://api.openai.com/v1', priority: 3, costPer1MInput: 0.15, costPer1MOutput: 0.60 },
+    { provider: 'openai', model: 'o3', baseUrl: 'https://api.openai.com/v1', priority: 4, costPer1MInput: 1.10, costPer1MOutput: 4.40 },
+    { provider: 'openai', model: 'o4-mini', baseUrl: 'https://api.openai.com/v1', priority: 5, costPer1MInput: 0.50, costPer1MOutput: 2.00 },
+  ],
+
+  // ─── Anthropic (Direct API) ───────────────────────
+  anthropic: [
+    { provider: 'anthropic', model: 'claude-opus-4-20250514', baseUrl: 'https://api.anthropic.com/v1', priority: 1, costPer1MInput: 15.00, costPer1MOutput: 75.00 },
+    { provider: 'anthropic', model: 'claude-sonnet-4-20250514', baseUrl: 'https://api.anthropic.com/v1', priority: 2, costPer1MInput: 3.00, costPer1MOutput: 15.00 },
+    { provider: 'anthropic', model: 'claude-3-5-haiku-20241022', baseUrl: 'https://api.anthropic.com/v1', priority: 3, costPer1MInput: 0.80, costPer1MOutput: 4.00 },
+  ],
+
+  // ─── Router9 Combo (hermes-auto) ──────────────────
+  'router9-hermes': [
+    { provider: 'mimo', model: 'mimo-v2.5-pro', baseUrl: 'https://router9.aleca.my.id/v1', priority: 1, costPer1MInput: 0.00, costPer1MOutput: 0.00 },
+    { provider: 'cx', model: 'gpt-5.4-mini', baseUrl: 'https://router9.aleca.my.id/v1', priority: 2, costPer1MInput: 0.15, costPer1MOutput: 0.60 },
+    { provider: 'mimo', model: 'mimo-v2-flash', baseUrl: 'https://router9.aleca.my.id/v1', priority: 3, costPer1MInput: 0.00, costPer1MOutput: 0.00 },
+    { provider: 'qwencloud', model: 'qwen3.7-plus', baseUrl: 'https://router9.aleca.my.id/v1', priority: 4, costPer1MInput: 0.16, costPer1MOutput: 0.48 },
+    { provider: 'cx', model: 'gpt-5.5', baseUrl: 'https://router9.aleca.my.id/v1', priority: 5, costPer1MInput: 2.50, costPer1MOutput: 10.00 },
+    { provider: 'agentrouter', model: 'claude-opus-4-8', baseUrl: 'https://router9.aleca.my.id/v1', priority: 6, costPer1MInput: 15.00, costPer1MOutput: 75.00 },
   ],
 };
 

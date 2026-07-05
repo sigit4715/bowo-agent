@@ -147,22 +147,36 @@ export class StreamingServer {
 
     const startTime = Date.now();
     let errored = false;
+    let tokenCount = 0;
 
     try {
-      for await (const token of generator) {
+      // Consume the generator manually so we can yield to the event loop
+      // periodically. `for await` on a synchronous async generator never
+      // yields control, making cancellation impossible.
+      let result = await generator.next();
+      while (!result.done) {
         // Check cancellation
         if (this.cancelFlags.get(sessionId)) {
           break;
         }
 
+        tokenCount++;
         session.tokens++;
         const buf = this.buffers.get(sessionId)!;
-        buf.push(token);
+        buf.push(result.value);
 
         // Flush if buffer is full
         if (buf.length >= this.config.tokenBufferSize) {
           this.flushBuffer(sessionId);
         }
+
+        // Yield to the event loop periodically so cancel flags are checked
+        // and other I/O (WebSocket sends, etc.) can proceed.
+        if (tokenCount % this.config.tokenBufferSize === 0) {
+          await new Promise<void>((r) => setImmediate(r));
+        }
+
+        result = await generator.next();
       }
     } catch (err) {
       errored = true;
